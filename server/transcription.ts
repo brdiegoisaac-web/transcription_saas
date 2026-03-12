@@ -1,4 +1,3 @@
-import FormData from "form-data";
 import { ENV } from "./_core/env";
 
 export interface TranscriptionSegment {
@@ -30,23 +29,44 @@ export async function transcribeWithGroq(
   }
 
   try {
-    // Criar FormData para enviar o arquivo
-    const formData = new FormData();
-    formData.append("file", audioBuffer, fileName);
-    formData.append("model", "whisper-large-v3-turbo");
-    formData.append("language", "pt"); // Português como padrão
-    formData.append("response_format", "json");
-    formData.append("timestamp_granularities", "segment");
+    // Criar FormData manualmente com boundary
+    const boundary = "----FormBoundary" + Date.now();
+    let body = "";
+
+    // Adicionar arquivo
+    body += `--${boundary}\r\n`;
+    body += `Content-Disposition: form-data; name="file"; filename="${fileName}"\r\n`;
+    body += `Content-Type: audio/mpeg\r\n\r\n`;
+
+    // Converter para string binária para concatenar com o buffer
+    const bodyStart = Buffer.from(body);
+    const bodyEnd = Buffer.from(
+      `\r\n--${boundary}\r\n` +
+        `Content-Disposition: form-data; name="model"\r\n\r\n` +
+        `whisper-large-v3-turbo\r\n` +
+        `--${boundary}\r\n` +
+        `Content-Disposition: form-data; name="language"\r\n\r\n` +
+        `pt\r\n` +
+        `--${boundary}\r\n` +
+        `Content-Disposition: form-data; name="response_format"\r\n\r\n` +
+        `json\r\n` +
+        `--${boundary}\r\n` +
+        `Content-Disposition: form-data; name="timestamp_granularities"\r\n\r\n` +
+        `segment\r\n` +
+        `--${boundary}--\r\n`
+    );
+
+    // Concatenar buffers
+    const fullBody = Buffer.concat([bodyStart, audioBuffer, bodyEnd]);
 
     // Fazer requisição para Groq API
     const response = await fetch("https://api.groq.com/openai/v1/audio/transcriptions", {
       method: "POST",
       headers: {
         Authorization: `Bearer ${ENV.groqApiKey}`,
-        // FormData define automaticamente o Content-Type com boundary
-        ...formData.getHeaders?.(),
+        "Content-Type": `multipart/form-data; boundary=${boundary}`,
       },
-      body: formData as any,
+      body: fullBody as any,
     });
 
     if (!response.ok) {
@@ -54,7 +74,7 @@ export async function transcribeWithGroq(
       throw new Error(`Groq API error: ${response.status} - ${error}`);
     }
 
-    const data = await response.json() as any;
+    const data = (await response.json()) as any;
 
     // Processar resposta e gerar segmentos
     const text = data.text || "";
