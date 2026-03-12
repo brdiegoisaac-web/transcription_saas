@@ -26,6 +26,7 @@ interface TranscriptionEditorProps {
     segments: Segment[];
     fileName: string;
     createdAt: Date;
+    fileUrl?: string;
   };
   onBack: () => void;
 }
@@ -41,40 +42,48 @@ export default function TranscriptionEditor({
   const [editingSegmentId, setEditingSegmentId] = useState<number | null>(null);
   const audioRef = useRef<HTMLAudioElement>(null);
   const playerRef = useRef<HTMLDivElement>(null);
+  const [duration, setDuration] = useState(0);
 
-  // Simular áudio (usando Web Audio API com tom)
+  // Usar áudio real do arquivo ou simular
   useEffect(() => {
-    if (!audioRef.current) {
-      const audioContext = new (window.AudioContext || (window as any).webkitAudioContext)();
-      const oscillator = audioContext.createOscillator();
-      const gainNode = audioContext.createGain();
+    if (transcription.fileUrl && audioRef.current) {
+      audioRef.current.src = transcription.fileUrl;
+      audioRef.current.addEventListener(
+        "loadedmetadata",
+        () => {
+          setDuration(audioRef.current?.duration || 0);
+        },
+        { once: true }
+      );
+    }
+  }, [transcription.fileUrl]);
 
-      oscillator.connect(gainNode);
-      gainNode.connect(audioContext.destination);
-
-      oscillator.frequency.value = 440;
-      gainNode.gain.setValueAtTime(0, audioContext.currentTime);
-
-      oscillator.start();
-
-      // Simular duração total de 12 segundos
-      const duration = 12;
-      let startTime = audioContext.currentTime;
-
-      const updateTime = () => {
-        const elapsed = audioContext.currentTime - startTime;
-        if (elapsed < duration && isPlaying) {
-          setCurrentTime(elapsed);
-          requestAnimationFrame(updateTime);
-        } else if (elapsed >= duration) {
-          setIsPlaying(false);
-          setCurrentTime(0);
-        }
-      };
-
+  // Controlar reprodução de áudio
+  useEffect(() => {
+    if (audioRef.current) {
       if (isPlaying) {
-        updateTime();
+        audioRef.current.play().catch((err) => console.log("Erro ao reproduzir:", err));
+      } else {
+        audioRef.current.pause();
       }
+    }
+  }, [isPlaying]);
+
+  // Atualizar tempo atual durante reprodução
+  useEffect(() => {
+    const audio = audioRef.current;
+    if (!audio) return;
+
+    const updateTime = () => {
+      setCurrentTime(audio.currentTime);
+      if (audio.currentTime >= audio.duration) {
+        setIsPlaying(false);
+      }
+    };
+
+    if (isPlaying) {
+      const interval = setInterval(updateTime, 100);
+      return () => clearInterval(interval);
     }
   }, [isPlaying]);
 
@@ -82,6 +91,9 @@ export default function TranscriptionEditor({
   const currentSegment = segments.find(
     (seg) => currentTime >= seg.start && currentTime < seg.end
   );
+
+  // Duração total (usar a real do arquivo ou calcular dos segmentos)
+  const totalDuration = duration || (segments.length > 0 ? segments[segments.length - 1].end : 12);
 
   // Exportar transcrição
   const handleExport = () => {
@@ -147,6 +159,15 @@ export default function TranscriptionEditor({
     toast.success("Texto copiado para a área de transferência");
   };
 
+  // Pausar ao sair
+  useEffect(() => {
+    return () => {
+      if (audioRef.current) {
+        audioRef.current.pause();
+      }
+    };
+  }, []);
+
   return (
     <div className="min-h-screen bg-gradient-to-br from-background via-background to-secondary">
       {/* Header */}
@@ -199,7 +220,7 @@ export default function TranscriptionEditor({
                     <div
                       key={i}
                       className={`w-1 rounded-full transition-all ${
-                        currentTime > (i / 40) * 12
+                        currentTime > (i / 40) * totalDuration
                           ? "bg-primary h-16"
                           : "bg-muted h-8"
                       }`}
@@ -207,21 +228,39 @@ export default function TranscriptionEditor({
                   ))}
                 </div>
 
+                {/* Hidden Audio Element */}
+                <audio
+                  ref={audioRef}
+                  crossOrigin="anonymous"
+                  onEnded={() => setIsPlaying(false)}
+                />
+
                 {/* Time Display */}
                 <div className="flex items-center justify-between text-sm">
                   <span className="font-mono text-foreground">{formatTime(currentTime)}</span>
-                  <span className="font-mono text-muted-foreground">12.00s</span>
+                  <span className="font-mono text-muted-foreground">{formatTime(totalDuration)}</span>
                 </div>
 
                 {/* Progress Bar */}
-                <div className="w-full bg-secondary rounded-full h-2 cursor-pointer relative group">
+                <div
+                  className="w-full bg-secondary rounded-full h-2 cursor-pointer relative group"
+                  onClick={(e) => {
+                    const rect = e.currentTarget.getBoundingClientRect();
+                    const percent = (e.clientX - rect.left) / rect.width;
+                    const newTime = percent * totalDuration;
+                    setCurrentTime(newTime);
+                    if (audioRef.current) {
+                      audioRef.current.currentTime = newTime;
+                    }
+                  }}
+                >
                   <div
                     className="bg-primary h-full rounded-full transition-all"
-                    style={{ width: `${(currentTime / 12) * 100}%` }}
+                    style={{ width: `${(currentTime / totalDuration) * 100}%` }}
                   />
                   <div
                     className="absolute top-1/2 -translate-y-1/2 w-4 h-4 bg-primary rounded-full shadow-lg opacity-0 group-hover:opacity-100 transition-opacity"
-                    style={{ left: `${(currentTime / 12) * 100}%` }}
+                    style={{ left: `${(currentTime / totalDuration) * 100}%` }}
                   />
                 </div>
 
@@ -230,7 +269,13 @@ export default function TranscriptionEditor({
                   <Button
                     variant="outline"
                     size="icon"
-                    onClick={() => setCurrentTime(Math.max(0, currentTime - 1))}
+                    onClick={() => {
+                      const newTime = Math.max(0, currentTime - 1);
+                      setCurrentTime(newTime);
+                      if (audioRef.current) {
+                        audioRef.current.currentTime = newTime;
+                      }
+                    }}
                   >
                     <span className="text-xs">-1s</span>
                   </Button>
@@ -248,7 +293,13 @@ export default function TranscriptionEditor({
                   <Button
                     variant="outline"
                     size="icon"
-                    onClick={() => setCurrentTime(Math.min(12, currentTime + 1))}
+                    onClick={() => {
+                      const newTime = Math.min(totalDuration, currentTime + 1);
+                      setCurrentTime(newTime);
+                      if (audioRef.current) {
+                        audioRef.current.currentTime = newTime;
+                      }
+                    }}
                   >
                     <span className="text-xs">+1s</span>
                   </Button>

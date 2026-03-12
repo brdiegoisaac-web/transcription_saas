@@ -16,6 +16,7 @@ interface Transcription {
   }>;
   fileName: string;
   createdAt: Date;
+  fileUrl?: string;
 }
 
 export default function Home() {
@@ -24,48 +25,89 @@ export default function Home() {
   const [transcription, setTranscription] = useState<Transcription | null>(null);
   const [fileName, setFileName] = useState("");
 
-  // Simular processamento de transcrição
+  // Processar arquivo de áudio/vídeo
   const handleFileUpload = async (file: File) => {
     setIsLoading(true);
     setFileName(file.name);
 
-    // Simular delay de processamento
-    await new Promise((resolve) => setTimeout(resolve, 2000));
+    try {
+      // Criar URL do arquivo para reprodução
+      const fileUrl = URL.createObjectURL(file);
 
-    // Dados de exemplo simulando resposta da API Whisper
-    const mockTranscription: Transcription = {
-      id: Math.random().toString(36).substr(2, 9),
-      fileName: file.name,
-      text: "Olá e bem-vindo ao nosso podcast sobre criatividade. Hoje vamos falar sobre como as ferramentas de IA estão transformando o processo criativo. Muitos criadores estão usando transcrição de áudio para organizar suas ideias.",
-      segments: [
-        {
-          id: 0,
-          start: 0,
-          end: 3.5,
-          text: "Olá e bem-vindo ao nosso podcast sobre criatividade.",
-          speaker: "Apresentador",
-        },
-        {
-          id: 1,
-          start: 3.8,
-          end: 8.2,
-          text: "Hoje vamos falar sobre como as ferramentas de IA estão transformando o processo criativo.",
-          speaker: "Apresentador",
-        },
-        {
-          id: 2,
-          start: 8.5,
-          end: 12.0,
-          text: "Muitos criadores estão usando transcrição de áudio para organizar suas ideias.",
-          speaker: "Apresentador",
-        },
-      ],
-      createdAt: new Date(),
-    };
+      // Obter duração do áudio/vídeo
+      const audio = new Audio();
+      audio.src = fileUrl;
 
-    setTranscription(mockTranscription);
-    setCurrentView("editor");
-    setIsLoading(false);
+      let duration = 0;
+      audio.addEventListener(
+        "loadedmetadata",
+        () => {
+          duration = audio.duration;
+        },
+        { once: true }
+      );
+
+      // Aguardar carregamento dos metadados
+      await new Promise((resolve) => {
+        const checkDuration = setInterval(() => {
+          if (audio.duration) {
+            duration = audio.duration;
+            clearInterval(checkDuration);
+            resolve(null);
+          }
+        }, 100);
+        setTimeout(() => {
+          clearInterval(checkDuration);
+          resolve(null);
+        }, 3000);
+      });
+
+      // Simular transcrição com duração real
+      await new Promise((resolve) => setTimeout(resolve, 2000));
+
+      // Gerar segmentos baseado na duração real
+      const segmentDuration = Math.max(3, duration / 3);
+      const mockSegments = [];
+      let currentTime = 0;
+      let segmentId = 0;
+
+      const sampleTexts = [
+        "Bem-vindo a este conteúdo. Este é um exemplo de transcrição automática.",
+        "A inteligência artificial está transformando a forma como criamos conteúdo.",
+        "Com ferramentas como esta, você pode transcrever áudio em segundos.",
+        "Perfeito para criadores, podcasters e profissionais de marketing.",
+        "Você pode editar, exportar em vários formatos e compartilhar facilmente.",
+      ];
+
+      while (currentTime < duration) {
+        const endTime = Math.min(currentTime + segmentDuration, duration);
+        mockSegments.push({
+          id: segmentId,
+          start: currentTime,
+          end: endTime,
+          text: sampleTexts[segmentId % sampleTexts.length],
+          speaker: segmentId % 2 === 0 ? "Falante A" : "Falante B",
+        });
+        currentTime = endTime;
+        segmentId++;
+      }
+
+      const mockTranscription: Transcription = {
+        id: Math.random().toString(36).substr(2, 9),
+        fileName: file.name,
+        text: mockSegments.map((s) => s.text).join(" "),
+        segments: mockSegments,
+        createdAt: new Date(),
+      };
+
+      // Passar o URL do arquivo para o editor
+      setTranscription({ ...mockTranscription, fileUrl });
+      setCurrentView("editor");
+    } catch (error) {
+      console.error("Erro ao processar arquivo:", error);
+    } finally {
+      setIsLoading(false);
+    }
   };
 
   const handleLinkSubmit = async (link: string) => {
