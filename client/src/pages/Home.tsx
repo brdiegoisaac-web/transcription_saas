@@ -3,6 +3,8 @@ import { Upload, Link as LinkIcon, Loader2, Play, Pause } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import TranscriptionEditor from "@/components/TranscriptionEditor";
+import { trpc } from "@/lib/trpc";
+import { toast } from "sonner";
 
 interface Transcription {
   id: string;
@@ -24,6 +26,7 @@ export default function Home() {
   const [isLoading, setIsLoading] = useState(false);
   const [transcription, setTranscription] = useState<Transcription | null>(null);
   const [fileName, setFileName] = useState("");
+  const transcribeMutation = trpc.transcription.transcribeFile.useMutation();
 
   // Processar arquivo de áudio/vídeo
   const handleFileUpload = async (file: File) => {
@@ -74,44 +77,33 @@ export default function Home() {
         duration = 30; // 30 segundos como padrão
       }
 
-      // Simular transcrição com duração real
-      await new Promise((resolve) => setTimeout(resolve, 2000));
+      // Converter arquivo para base64
+      const reader = new FileReader();
+      const audioBase64 = await new Promise<string>((resolve, reject) => {
+        reader.onload = () => {
+          const result = reader.result as string;
+          const base64 = result.split(',')[1] || '';
+          resolve(base64);
+        };
+        reader.onerror = reject;
+        reader.readAsDataURL(file);
+      });
 
-      // Gerar segmentos baseado na duração real (cada segmento com ~5-8 segundos)
-      const segmentDuration = Math.max(5, Math.min(8, duration / 4));
-      const mockSegments = [];
-      let currentTime = 0;
-      let segmentId = 0;
+      // Chamar API de transcrição real
+      const transcriptionResult = await transcribeMutation.mutateAsync({
+        audioBase64,
+        fileName: file.name,
+      });
 
-      const sampleTexts = [
-        "Bem-vindo a este conteúdo. Este é um exemplo de transcrição automática com inteligência artificial.",
-        "A inteligência artificial está transformando a forma como criamos conteúdo e nos comunicamos.",
-        "Com ferramentas como esta, você pode transcrever áudio em segundos com alta precisão.",
-        "Perfeito para criadores, podcasters e profissionais de marketing que trabalham com vídeos.",
-        "Você pode editar, exportar em vários formatos e compartilhar facilmente suas transcrições.",
-        "O editor permite sincronizar o texto com o áudio e fazer ajustes em tempo real.",
-        "Suporta múltiplos idiomas e identificação automática de falantes diferentes.",
-        "Economize tempo e melhore a produtividade com transcrição automática de qualidade profissional.",
-      ];
-
-      while (currentTime < duration) {
-        const endTime = Math.min(currentTime + segmentDuration, duration);
-        mockSegments.push({
-          id: segmentId,
-          start: currentTime,
-          end: endTime,
-          text: sampleTexts[segmentId % sampleTexts.length],
-          speaker: segmentId % 2 === 0 ? "Falante A" : "Falante B",
-        });
-        currentTime = endTime;
-        segmentId++;
+      if (!transcriptionResult.success || !transcriptionResult.data) {
+        throw new Error(transcriptionResult.error || "Erro ao transcrever áudio");
       }
 
       const mockTranscription: Transcription = {
         id: Math.random().toString(36).substr(2, 9),
         fileName: file.name,
-        text: mockSegments.map((s) => s.text).join(" "),
-        segments: mockSegments,
+        text: transcriptionResult.data.text,
+        segments: transcriptionResult.data.segments,
         createdAt: new Date(),
       };
 
