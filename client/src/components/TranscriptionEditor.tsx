@@ -312,9 +312,14 @@ export default function TranscriptionEditor({
 
             {/* Segments Timeline */}
             <Card className="bg-card/50 backdrop-blur-sm border border-border/50 p-6">
-              <h3 className="font-semibold text-foreground mb-4">Segmentos</h3>
+              <h3 className="font-semibold text-foreground mb-4">Segmentos ({segments.length})</h3>
               <div className="space-y-3 max-h-96 overflow-y-auto">
-                {segments.map((segment) => (
+                {segments.length === 0 ? (
+                  <div className="text-center py-8">
+                    <p className="text-muted-foreground">Nenhum segmento disponível</p>
+                  </div>
+                ) : (
+                  segments.map((segment) => (
                   <div
                     key={segment.id}
                     className={`p-4 rounded-lg border transition-all cursor-pointer ${
@@ -370,7 +375,8 @@ export default function TranscriptionEditor({
                       </div>
                     </div>
                   </div>
-                ))}
+                  ))
+                )}
               </div>
             </Card>
           </div>

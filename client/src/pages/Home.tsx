@@ -48,35 +48,50 @@ export default function Home() {
       );
 
       // Aguardar carregamento dos metadados
-      await new Promise((resolve) => {
-        const checkDuration = setInterval(() => {
-          if (audio.duration) {
-            duration = audio.duration;
-            clearInterval(checkDuration);
-            resolve(null);
-          }
-        }, 100);
+      await new Promise<void>((resolve) => {
+        if (audio.duration && audio.duration > 0) {
+          duration = audio.duration;
+          resolve();
+          return;
+        }
+        
+        const handleLoadedMetadata = () => {
+          duration = audio.duration || 0;
+          audio.removeEventListener('loadedmetadata', handleLoadedMetadata);
+          resolve();
+        };
+        
+        audio.addEventListener('loadedmetadata', handleLoadedMetadata);
+        
         setTimeout(() => {
-          clearInterval(checkDuration);
-          resolve(null);
-        }, 3000);
+          audio.removeEventListener('loadedmetadata', handleLoadedMetadata);
+          resolve();
+        }, 5000);
       });
+      
+      // Se ainda não temos duração, usar um valor padrão
+      if (!duration || duration === 0) {
+        duration = 30; // 30 segundos como padrão
+      }
 
       // Simular transcrição com duração real
       await new Promise((resolve) => setTimeout(resolve, 2000));
 
-      // Gerar segmentos baseado na duração real
-      const segmentDuration = Math.max(3, duration / 3);
+      // Gerar segmentos baseado na duração real (cada segmento com ~5-8 segundos)
+      const segmentDuration = Math.max(5, Math.min(8, duration / 4));
       const mockSegments = [];
       let currentTime = 0;
       let segmentId = 0;
 
       const sampleTexts = [
-        "Bem-vindo a este conteúdo. Este é um exemplo de transcrição automática.",
-        "A inteligência artificial está transformando a forma como criamos conteúdo.",
-        "Com ferramentas como esta, você pode transcrever áudio em segundos.",
-        "Perfeito para criadores, podcasters e profissionais de marketing.",
-        "Você pode editar, exportar em vários formatos e compartilhar facilmente.",
+        "Bem-vindo a este conteúdo. Este é um exemplo de transcrição automática com inteligência artificial.",
+        "A inteligência artificial está transformando a forma como criamos conteúdo e nos comunicamos.",
+        "Com ferramentas como esta, você pode transcrever áudio em segundos com alta precisão.",
+        "Perfeito para criadores, podcasters e profissionais de marketing que trabalham com vídeos.",
+        "Você pode editar, exportar em vários formatos e compartilhar facilmente suas transcrições.",
+        "O editor permite sincronizar o texto com o áudio e fazer ajustes em tempo real.",
+        "Suporta múltiplos idiomas e identificação automática de falantes diferentes.",
+        "Economize tempo e melhore a produtividade com transcrição automática de qualidade profissional.",
       ];
 
       while (currentTime < duration) {
