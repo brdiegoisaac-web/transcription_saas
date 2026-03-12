@@ -50,9 +50,6 @@ export async function transcribeWithGroq(
         `--${boundary}\r\n` +
         `Content-Disposition: form-data; name="response_format"\r\n\r\n` +
         `json\r\n` +
-        `--${boundary}\r\n` +
-        `Content-Disposition: form-data; name="timestamp_granularities"\r\n\r\n` +
-        `segment\r\n` +
         `--${boundary}--\r\n`
     );
 
