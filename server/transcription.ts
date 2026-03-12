@@ -22,7 +22,8 @@ export interface TranscriptionResult {
  */
 export async function transcribeWithGroq(
   audioBuffer: Buffer,
-  fileName: string
+  fileName: string,
+  language: "pt" | "en" | "es" = "pt"
 ): Promise<TranscriptionResult> {
   if (!ENV.groqApiKey) {
     throw new Error("GROQ_API_KEY não configurada");
@@ -46,7 +47,7 @@ export async function transcribeWithGroq(
         `whisper-large-v3-turbo\r\n` +
         `--${boundary}\r\n` +
         `Content-Disposition: form-data; name="language"\r\n\r\n` +
-        `pt\r\n` +
+        `${language}\r\n` +
         `--${boundary}\r\n` +
         `Content-Disposition: form-data; name="response_format"\r\n\r\n` +
         `json\r\n` +

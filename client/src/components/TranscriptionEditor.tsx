@@ -285,8 +285,17 @@ export default function TranscriptionEditor({
           />
         </div>
 
+        {/* Texto Completo - Fácil de Copiar */}
+        <div className="mb-8 p-6 bg-secondary/20 rounded-lg border border-border/30">
+          <h3 className="text-sm font-semibold text-foreground mb-3">Transcrição Completa</h3>
+          <p className="text-sm leading-relaxed text-foreground whitespace-pre-wrap">
+            {segments.map((seg) => seg.text).join(" ")}
+          </p>
+        </div>
+
         {/* Transcrição - Texto Limpo */}
         <div className="space-y-6">
+          <h3 className="text-sm font-semibold text-foreground">Segmentos com Timestamps</h3>
           {segments.map((segment) => (
             <div
               key={segment.id}

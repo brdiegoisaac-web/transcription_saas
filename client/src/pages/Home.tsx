@@ -26,7 +26,15 @@ export default function Home() {
   const [isLoading, setIsLoading] = useState(false);
   const [transcription, setTranscription] = useState<Transcription | null>(null);
   const [fileName, setFileName] = useState("");
+  const [inputLanguage, setInputLanguage] = useState<"pt" | "en" | "es">("pt");
+  const [outputLanguage, setOutputLanguage] = useState<"pt" | "en" | "es">("pt");
   const transcribeMutation = trpc.transcription.transcribeFile.useMutation();
+
+  const languageOptions = [
+    { code: "pt", label: "Português" },
+    { code: "en", label: "Inglês" },
+    { code: "es", label: "Espanhol" },
+  ];
 
   // Processar arquivo de áudio/vídeo
   const handleFileUpload = async (file: File) => {
@@ -93,6 +101,8 @@ export default function Home() {
       const transcriptionResult = await transcribeMutation.mutateAsync({
         audioBase64,
         fileName: file.name,
+        inputLanguage,
+        outputLanguage,
       });
 
       if (!transcriptionResult.success || !transcriptionResult.data) {
@@ -211,6 +221,42 @@ export default function Home() {
             <p className="text-sm text-muted-foreground">
               Suporta 99+ idiomas • Identificação de falantes • Exportação em múltiplos formatos
             </p>
+          </div>
+
+          {/* Language Selection */}
+          <div className="mb-8 grid grid-cols-2 gap-4 md:gap-6">
+            <div>
+              <label className="block text-sm font-medium text-foreground mb-2">
+                Idioma do Áudio
+              </label>
+              <select
+                value={inputLanguage}
+                onChange={(e) => setInputLanguage(e.target.value as "pt" | "en" | "es")}
+                className="w-full px-4 py-2 rounded-lg border border-border bg-background text-foreground focus:outline-none focus:ring-2 focus:ring-primary/50 transition"
+              >
+                {languageOptions.map((lang) => (
+                  <option key={lang.code} value={lang.code}>
+                    {lang.label}
+                  </option>
+                ))}
+              </select>
+            </div>
+            <div>
+              <label className="block text-sm font-medium text-foreground mb-2">
+                Idioma de Saída
+              </label>
+              <select
+                value={outputLanguage}
+                onChange={(e) => setOutputLanguage(e.target.value as "pt" | "en" | "es")}
+                className="w-full px-4 py-2 rounded-lg border border-border bg-background text-foreground focus:outline-none focus:ring-2 focus:ring-primary/50 transition"
+              >
+                {languageOptions.map((lang) => (
+                  <option key={lang.code} value={lang.code}>
+                    {lang.label}
+                  </option>
+                ))}
+              </select>
+            </div>
           </div>
 
           {/* Upload Area */}
