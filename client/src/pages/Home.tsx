@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { Upload, Link as LinkIcon, Loader2, Play, Pause } from "lucide-react";
+import { Upload, Link as LinkIcon, Loader2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import TranscriptionEditor from "@/components/TranscriptionEditor";
@@ -29,6 +29,7 @@ export default function Home() {
   const [inputLanguage, setInputLanguage] = useState<"pt" | "en" | "es">("pt");
   const [outputLanguage, setOutputLanguage] = useState<"pt" | "en" | "es">("pt");
   const transcribeMutation = trpc.transcription.transcribeFile.useMutation();
+  const youTubeMutation = trpc.transcription.transcribeYouTube.useMutation();
 
   const languageOptions = [
     { code: "pt", label: "Português" },
@@ -65,35 +66,34 @@ export default function Home() {
           resolve();
           return;
         }
-        
+
         const handleLoadedMetadata = () => {
           duration = audio.duration || 0;
-          audio.removeEventListener('loadedmetadata', handleLoadedMetadata);
+          audio.removeEventListener("loadedmetadata", handleLoadedMetadata);
           resolve();
         };
-        
-        audio.addEventListener('loadedmetadata', handleLoadedMetadata);
-        
+
+        audio.addEventListener("loadedmetadata", handleLoadedMetadata);
+
         setTimeout(() => {
-          audio.removeEventListener('loadedmetadata', handleLoadedMetadata);
+          audio.removeEventListener("loadedmetadata", handleLoadedMetadata);
           resolve();
         }, 5000);
       });
-      
+
       // Se ainda não temos duração, usar um valor padrão
       if (!duration || duration === 0) {
         duration = 30; // 30 segundos como padrão
       }
 
-      // Converter arquivo para base64
+      // Ler arquivo como base64
       const reader = new FileReader();
-      const audioBase64 = await new Promise<string>((resolve, reject) => {
+      const audioBase64 = await new Promise<string>((resolve) => {
         reader.onload = () => {
           const result = reader.result as string;
-          const base64 = result.split(',')[1] || '';
+          const base64 = result.split(",")[1];
           resolve(base64);
         };
-        reader.onerror = reject;
         reader.readAsDataURL(file);
       });
 
@@ -120,8 +120,10 @@ export default function Home() {
       // Passar o URL do arquivo para o editor
       setTranscription({ ...mockTranscription, fileUrl });
       setCurrentView("editor");
+      toast.success("Áudio transcrito com sucesso!");
     } catch (error) {
       console.error("Erro ao processar arquivo:", error);
+      toast.error(error instanceof Error ? error.message : "Erro ao processar arquivo");
     } finally {
       setIsLoading(false);
     }
@@ -131,43 +133,35 @@ export default function Home() {
     setIsLoading(true);
     setFileName(link);
 
-    // Simular delay de processamento
-    await new Promise((resolve) => setTimeout(resolve, 2500));
+    try {
+      // Chamar API de transcrição do YouTube
+      const result = await youTubeMutation.mutateAsync({
+        youtubeUrl: link,
+        inputLanguage,
+        outputLanguage,
+      });
 
-    // Dados de exemplo simulando resposta da API Whisper para YouTube
-    const mockTranscription: Transcription = {
-      id: Math.random().toString(36).substr(2, 9),
-      fileName: link,
-      text: "Este é um vídeo sobre produção de conteúdo criativo. A transcrição foi extraída automaticamente do vídeo do YouTube. Com a IA, você pode transcrever qualquer vídeo em segundos.",
-      segments: [
-        {
-          id: 0,
-          start: 0,
-          end: 4.0,
-          text: "Este é um vídeo sobre produção de conteúdo criativo.",
-          speaker: "Criador",
-        },
-        {
-          id: 1,
-          start: 4.2,
-          end: 8.5,
-          text: "A transcrição foi extraída automaticamente do vídeo do YouTube.",
-          speaker: "Criador",
-        },
-        {
-          id: 2,
-          start: 8.8,
-          end: 12.0,
-          text: "Com a IA, você pode transcrever qualquer vídeo em segundos.",
-          speaker: "Criador",
-        },
-      ],
-      createdAt: new Date(),
-    };
+      if (!result.success || !result.data) {
+        throw new Error(result.error || "Erro ao transcrever vídeo do YouTube");
+      }
 
-    setTranscription(mockTranscription);
-    setCurrentView("editor");
-    setIsLoading(false);
+      const transcription: Transcription = {
+        id: Math.random().toString(36).substr(2, 9),
+        fileName: link,
+        text: result.data.text,
+        segments: result.data.segments,
+        createdAt: new Date(),
+      };
+
+      setTranscription(transcription);
+      setCurrentView("editor");
+      toast.success("Vídeo do YouTube transcrito com sucesso!");
+    } catch (error) {
+      console.error("Erro ao processar link do YouTube:", error);
+      toast.error(error instanceof Error ? error.message : "Erro ao transcrever vídeo do YouTube");
+    } finally {
+      setIsLoading(false);
+    }
   };
 
   if (currentView === "editor" && transcription) {
@@ -316,90 +310,25 @@ export default function Home() {
                         }
                       }}
                     />
-                    <p className="text-xs text-muted-foreground mt-2">
-                      Cole o URL de um vídeo do YouTube, TikTok ou Facebook
-                    </p>
                   </div>
-                  <div className="flex items-end">
-                    <Button
-                      onClick={(e) => {
-                        const input = (e.currentTarget.parentElement?.parentElement?.querySelector(
-                          'input[type="text"]'
-                        ) as HTMLInputElement) || null;
-                        if (input?.value) handleLinkSubmit(input.value);
-                      }}
-                      disabled={isLoading}
-                      className="gap-2"
-                    >
-                      {isLoading ? (
-                        <>
-                          <Loader2 className="w-4 h-4 animate-spin" />
-                          Processando...
-                        </>
-                      ) : (
-                        "Transcrever"
-                      )}
-                    </Button>
-                  </div>
+                  <Button
+                    onClick={(e) => {
+                      const input = (e.currentTarget.parentElement?.querySelector("input") as HTMLInputElement);
+                      if (input?.value) {
+                        handleLinkSubmit(input.value);
+                      }
+                    }}
+                    disabled={isLoading}
+                    className="self-end"
+                  >
+                    {isLoading ? <Loader2 className="w-4 h-4 animate-spin" /> : "Transcrever"}
+                  </Button>
                 </div>
               </div>
             </Card>
-
-            {/* Loading State */}
-            {isLoading && (
-              <Card className="bg-primary/10 border border-primary/20">
-                <div className="p-6 flex items-center gap-4">
-                  <Loader2 className="w-6 h-6 text-primary animate-spin" />
-                  <div>
-                    <p className="font-semibold text-foreground">Transcrevendo seu arquivo...</p>
-                    <p className="text-sm text-muted-foreground">
-                      Isso pode levar alguns segundos. Obrigado pela paciência!
-                    </p>
-                  </div>
-                </div>
-              </Card>
-            )}
-          </div>
-
-          {/* Features Section */}
-          <div className="mt-16 grid grid-cols-1 md:grid-cols-3 gap-6">
-            <div className="text-center">
-              <div className="w-12 h-12 bg-primary/10 rounded-lg flex items-center justify-center mx-auto mb-4">
-                <span className="text-2xl">⚡</span>
-              </div>
-              <h3 className="font-semibold text-foreground mb-2">Rápido</h3>
-              <p className="text-sm text-muted-foreground">
-                Transcreva um vídeo de 10 minutos em menos de 1 minuto
-              </p>
-            </div>
-            <div className="text-center">
-              <div className="w-12 h-12 bg-primary/10 rounded-lg flex items-center justify-center mx-auto mb-4">
-                <span className="text-2xl">🎯</span>
-              </div>
-              <h3 className="font-semibold text-foreground mb-2">Preciso</h3>
-              <p className="text-sm text-muted-foreground">
-                99% de precisão em mais de 99 idiomas
-              </p>
-            </div>
-            <div className="text-center">
-              <div className="w-12 h-12 bg-primary/10 rounded-lg flex items-center justify-center mx-auto mb-4">
-                <span className="text-2xl">✏️</span>
-              </div>
-              <h3 className="font-semibold text-foreground mb-2">Editável</h3>
-              <p className="text-sm text-muted-foreground">
-                Editor interativo com sincronização de áudio
-              </p>
-            </div>
           </div>
         </div>
       </main>
-
-      {/* Footer */}
-      <footer className="border-t border-border/50 mt-16 py-8 bg-card/30 backdrop-blur-sm">
-        <div className="container text-center text-sm text-muted-foreground">
-          <p>© 2026 Transcription SaaS. Todos os direitos reservados.</p>
-        </div>
-      </footer>
     </div>
   );
 }
