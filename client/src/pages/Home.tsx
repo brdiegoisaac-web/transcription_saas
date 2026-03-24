@@ -283,49 +283,7 @@ export default function Home() {
               </div>
             </Card>
 
-            {/* Divider */}
-            <div className="flex items-center gap-4">
-              <div className="flex-1 h-px bg-border/50"></div>
-              <span className="text-sm text-muted-foreground">OU</span>
-              <div className="flex-1 h-px bg-border/50"></div>
-            </div>
 
-            {/* Link Input Card */}
-            <Card className="bg-card/50 backdrop-blur-sm border border-border/50">
-              <div className="p-8">
-                <div className="flex gap-3">
-                  <div className="flex-1">
-                    <label className="block text-sm font-medium text-foreground mb-2">
-                      <LinkIcon className="w-4 h-4 inline mr-2" />
-                      Cole um link de vídeo
-                    </label>
-                    <input
-                      type="text"
-                      placeholder="youtube.com | tiktok.com | facebook.com | ..."
-                      disabled={isLoading}
-                      className="w-full px-4 py-3 rounded-lg border border-border bg-background text-foreground placeholder-muted-foreground focus:outline-none focus:ring-2 focus:ring-primary/50 transition disabled:opacity-50"
-                      onKeyPress={(e) => {
-                        if (e.key === "Enter" && e.currentTarget.value) {
-                          handleLinkSubmit(e.currentTarget.value);
-                        }
-                      }}
-                    />
-                  </div>
-                  <Button
-                    onClick={(e) => {
-                      const input = (e.currentTarget.parentElement?.querySelector("input") as HTMLInputElement);
-                      if (input?.value) {
-                        handleLinkSubmit(input.value);
-                      }
-                    }}
-                    disabled={isLoading}
-                    className="self-end"
-                  >
-                    {isLoading ? <Loader2 className="w-4 h-4 animate-spin" /> : "Transcrever"}
-                  </Button>
-                </div>
-              </div>
-            </Card>
           </div>
         </div>
       </main>

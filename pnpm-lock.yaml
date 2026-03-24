@@ -169,6 +169,9 @@ importers:
       next-themes:
         specifier: ^0.4.6
         version: 0.4.6(react-dom@19.2.1(react@19.2.1))(react@19.2.1)
+      play-dl:
+        specifier: ^1.9.7
+        version: 1.9.7
       react:
         specifier: ^19.2.1
         version: 19.2.1
@@ -211,6 +214,9 @@ importers:
       yt-dlp-exec:
         specifier: ^1.0.2
         version: 1.0.2
+      ytdl-core:
+        specifier: ^4.11.5
+        version: 4.11.5
       zod:
         specifier: ^4.1.12
         version: 4.1.12
@@ -3416,6 +3422,10 @@ packages:
     peerDependencies:
       react: ^16.5.1 || ^17.0.0 || ^18.0.0 || ^19.0.0
 
+  m3u8stream@0.8.6:
+    resolution: {integrity: sha512-LZj8kIVf9KCphiHmH7sbFQTVe4tOemb202fWwvJwR9W5ENW/1hxJN6ksAWGhQgSBSa3jyWhnjKU1Fw1GaOdbyA==}
+    engines: {node: '>=12'}
+
   magic-string@0.30.19:
     resolution: {integrity: sha512-2N21sPY9Ws53PZvsEpVtNuSW+ScYbQdp4b9qUaL+9QkHUrGFKo56Lg9Emg5s9V/qrtNBmiR01sYhUOwu3H+VOw==}
 
@@ -3600,6 +3610,10 @@ packages:
     resolution: {integrity: sha512-OqbOk5oEQeAZ8WXWydlu9HJjz9WVdEIvamMCcXmuqUYjTknH/sqsWvhQ3vgwKFRR1HpjvNBKQ37nbJgYzGqGcg==}
     engines: {node: '>=6'}
 
+  miniget@4.2.3:
+    resolution: {integrity: sha512-SjbDPDICJ1zT+ZvQwK0hUcRY4wxlhhNpHL9nJOB2MEAXRGagTljsO8MEDzQMTFf0Q8g4QNi8P9lEm/g7e+qgzA==}
+    engines: {node: '>=12'}
+
   minipass@7.1.2:
     resolution: {integrity: sha512-qOOzS1cBTWYF4BH8fVePDBOO9iptMnGUEZwNc/cMWnTV2nVLZ7VoNWEPHkYczZA0pdoA7dl6e7FL659nX9S2aw==}
     engines: {node: '>=16 || 14 >=14.17'}
@@ -3755,6 +3769,13 @@ packages:
 
   pkg-types@2.3.0:
     resolution: {integrity: sha512-SIqCzDRg0s9npO5XQ3tNZioRY1uK06lA41ynBC1YmFTmnY6FjUjVt6s4LoADmwoig1qqD0oK8h1p/8mlMx8Oig==}
+
+  play-audio@0.5.2:
+    resolution: {integrity: sha512-ZAqHUKkQLix2Iga7pPbsf1LpUoBjcpwU93F1l3qBIfxYddQLhxS6GKmS0d3jV8kSVaUbr6NnOEcEMFvuX93SWQ==}
+
+  play-dl@1.9.7:
+    resolution: {integrity: sha512-KpgerWxUCY4s9Mhze2qdqPhiqd8Ve6HufpH9mBH3FN+vux55qSh6WJKDabfie8IBHN7lnrAlYcT/UdGax58c2A==}
+    engines: {node: '>=16.0.0'}
 
   pnpm@10.18.1:
     resolution: {integrity: sha512-d6iEoWXLui2NHBnjtIgO7m0vyr0Nh5Eh4oIZa4AEI1HV6zygk1+lmdodxRJlzGiBatK93Sot5eqf35KtvsfNNA==}
@@ -3968,6 +3989,10 @@ packages:
 
   safer-buffer@2.1.2:
     resolution: {integrity: sha512-YZo3K82SD7Riyi0E1EQPojLz7kpepnSQI9IyPbHHg1XXXevb5dJI7tpyN2ADxGcQbHG7vcyRHk0cbwqcQriUtg==}
+
+  sax@1.6.0:
+    resolution: {integrity: sha512-6R3J5M4AcbtLUdZmRv2SygeVaM7IhrLXu9BmnOGmmACak8fiUtOsYNWUS4uK7upbmHIBbLBeFeI//477BKLBzA==}
+    engines: {node: '>=11.0.0'}
 
   scheduler@0.27.0:
     resolution: {integrity: sha512-eNv+WrVbKu1f3vbYJT/xtiF5syA5HPIMtf9IgY/nKg0sWqzAUEvqY/xm7OcZc/qafLx/iO9FgOmeSAp4v5ti/Q==}
@@ -4422,6 +4447,10 @@ packages:
   yt-dlp-exec@1.0.2:
     resolution: {integrity: sha512-swKtruQmGBs+Xrxy0wCZ2FxCT167EpBYIWdj/klTzNB2HrHng/qFlKo/C0WVlopbww8/uMIGQR6grXQ2ObcrAw==}
     engines: {node: '>= 12'}
+
+  ytdl-core@4.11.5:
+    resolution: {integrity: sha512-27LwsW4n4nyNviRCO1hmr8Wr5J1wLLMawHCQvH8Fk0hiRqrxuIu028WzbJetiYH28K8XDbeinYW4/wcHQD1EXA==}
+    engines: {node: '>=12'}
 
   zod@4.1.12:
     resolution: {integrity: sha512-JInaHOamG8pt5+Ey8kGmdcAcg3OL9reK8ltczgHTAwNhMys/6ThXHityHxVV2p3fkw/c+MAvBHFVYHFZDmjMCQ==}
@@ -7870,6 +7899,11 @@ snapshots:
     dependencies:
       react: 19.2.1
 
+  m3u8stream@0.8.6:
+    dependencies:
+      miniget: 4.2.3
+      sax: 1.6.0
+
   magic-string@0.30.19:
     dependencies:
       '@jridgewell/sourcemap-codec': 1.5.5
@@ -8289,6 +8323,8 @@ snapshots:
 
   mimic-fn@2.1.0: {}
 
+  miniget@4.2.3: {}
+
   minipass@7.1.2: {}
 
   minizlib@3.1.0:
@@ -8424,6 +8460,12 @@ snapshots:
       confbox: 0.2.2
       exsolve: 1.0.7
       pathe: 2.0.3
+
+  play-audio@0.5.2: {}
+
+  play-dl@1.9.7:
+    dependencies:
+      play-audio: 0.5.2
 
   pnpm@10.18.1: {}
 
@@ -8706,6 +8748,8 @@ snapshots:
   safe-buffer@5.2.1: {}
 
   safer-buffer@2.1.2: {}
+
+  sax@1.6.0: {}
 
   scheduler@0.27.0: {}
 
@@ -9187,6 +9231,12 @@ snapshots:
       node-fetch: 2.6.13
     transitivePeerDependencies:
       - encoding
+
+  ytdl-core@4.11.5:
+    dependencies:
+      m3u8stream: 0.8.6
+      miniget: 4.2.3
+      sax: 1.6.0
 
   zod@4.1.12: {}
 

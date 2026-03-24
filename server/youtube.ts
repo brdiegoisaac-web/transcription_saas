@@ -1,10 +1,7 @@
-import { exec } from "child_process";
-import { promisify } from "util";
 import * as fs from "fs";
 import * as path from "path";
+import play from "play-dl";
 import { transcribeWithGroq } from "./transcription";
-
-const execAsync = promisify(exec);
 
 interface YouTubeTranscriptionResult {
   success: boolean;
@@ -48,26 +45,58 @@ export async function transcribeYouTubeVideo(
       fs.mkdirSync(tempDir, { recursive: true });
     }
 
-    // Extrair áudio do YouTube usando yt-dlp
+    audioFilePath = path.join(tempDir, "audio.mp3");
+
+    // Extrair áudio do YouTube usando play-dl
     console.log("[YouTube] Extraindo áudio de:", youtubeUrl);
-    const outputTemplate = path.join(tempDir, "audio.%(ext)s");
 
     try {
-      await execAsync(
-        `yt-dlp -f bestaudio -x --audio-format mp3 -o "${outputTemplate}" "${youtubeUrl}"`,
-        { timeout: 300000 } // 5 minutos de timeout
-      );
+      // Validar se é um link do YouTube válido
+      const isYouTube = await play.validate(youtubeUrl);
+      if (!isYouTube) {
+        return {
+          success: false,
+          error: "URL do YouTube inválida ou vídeo não acessível",
+        };
+      }
+
+      console.log("[YouTube] Obtendo informações do vídeo...");
+      // Apenas validar a URL, não precisa buscar informações
+      console.log("[YouTube] URL validada, prosseguindo com download...");
+
+      console.log("[YouTube] Baixando áudio...");
+      const stream = await play.stream(youtubeUrl, {
+        discordPlayerCompatibility: false,
+      });
+
+      // Salvar o stream em um arquivo
+      await new Promise<void>((resolve, reject) => {
+        stream.stream
+          .pipe(fs.createWriteStream(audioFilePath!))
+          .on("finish", () => {
+            console.log("[YouTube] Áudio salvo com sucesso");
+            resolve();
+          })
+          .on("error", (error) => {
+            console.error("[YouTube] Erro ao salvar áudio:", error);
+            reject(error);
+          });
+
+        stream.stream.on("error", (error) => {
+          console.error("[YouTube] Erro no stream de áudio:", error);
+          reject(error);
+        });
+      });
     } catch (error) {
       console.error("[YouTube] Erro ao extrair áudio:", error);
+      if (error instanceof Error) {
+        console.error("[YouTube] Mensagem de erro:", error.message);
+      }
       return {
         success: false,
-        error: "Erro ao extrair áudio do YouTube. Verifique se o vídeo está disponível.",
+        error: `Erro ao extrair áudio do YouTube: ${error instanceof Error ? error.message : "Erro desconhecido"}`,
       };
     }
-
-    // Encontrar o arquivo de áudio extraído
-    const files = fs.readdirSync(tempDir);
-    audioFilePath = path.join(tempDir, files[0]);
 
     if (!fs.existsSync(audioFilePath)) {
       return {
