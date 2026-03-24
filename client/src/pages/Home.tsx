@@ -282,8 +282,6 @@ export default function Home() {
                 </label>
               </div>
             </Card>
-
-
           </div>
         </div>
       </main>
