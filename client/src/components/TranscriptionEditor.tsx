@@ -1,5 +1,5 @@
 import { useState, useRef, useEffect } from "react";
-import { ArrowLeft, Copy, Download, Play, Pause, Volume2 } from "lucide-react";
+import { ArrowLeft, Copy, Download, Play, Pause, Volume2, Save } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import {
   Select,
@@ -9,6 +9,7 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { toast } from "sonner";
+import { trpc } from "@/lib/trpc";
 
 interface Segment {
   id: number;
@@ -28,6 +29,45 @@ interface TranscriptionEditorProps {
     fileUrl?: string;
   };
   onBack: () => void;
+}
+
+function SaveButton({ transcription, segments }: any) {
+  const saveMutation = trpc.history.save.useMutation();
+  const [isSaving, setIsSaving] = useState(false);
+
+  const handleSave = async () => {
+    setIsSaving(true);
+    try {
+      const fullText = segments.map((seg: any) => `${seg.speaker}: ${seg.text}`).join("\n\n");
+      
+      await saveMutation.mutateAsync({
+        fileName: transcription.fileName,
+        originalText: fullText,
+        segments: segments,
+        duration: segments.length > 0 ? segments[segments.length - 1].end : 0,
+        inputLanguage: "pt",
+        outputLanguage: "pt",
+      });
+      
+      toast.success("Transcrição salva com sucesso!");
+    } catch (error) {
+      toast.error("Erro ao salvar transcrição");
+    } finally {
+      setIsSaving(false);
+    }
+  };
+
+  return (
+    <Button 
+      onClick={handleSave} 
+      size="sm" 
+      className="gap-2"
+      disabled={isSaving}
+    >
+      <Save className="w-4 h-4" />
+      {isSaving ? "Salvando..." : "Salvar"}
+    </Button>
+  );
 }
 
 export default function TranscriptionEditor({
@@ -187,6 +227,7 @@ export default function TranscriptionEditor({
               <Download className="w-4 h-4" />
               Baixar
             </Button>
+            <SaveButton transcription={transcription} segments={segments} />
           </div>
         </div>
       </header>

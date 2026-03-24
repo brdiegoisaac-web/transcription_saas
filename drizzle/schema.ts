@@ -25,4 +25,21 @@ export const users = mysqlTable("users", {
 export type User = typeof users.$inferSelect;
 export type InsertUser = typeof users.$inferInsert;
 
-// TODO: Add your tables here
+/**
+ * Transcrições salvas dos usuários
+ */
+export const transcriptions = mysqlTable("transcriptions", {
+  id: int("id").autoincrement().primaryKey(),
+  userId: int("userId").notNull(),
+  fileName: varchar("fileName", { length: 255 }).notNull(),
+  originalText: text("originalText").notNull(),
+  segments: text("segments").notNull(), // JSON string com segmentos
+  inputLanguage: varchar("inputLanguage", { length: 10 }).notNull(), // pt, en, es
+  outputLanguage: varchar("outputLanguage", { length: 10 }).notNull(),
+  duration: int("duration").notNull(), // duração em segundos
+  createdAt: timestamp("createdAt").defaultNow().notNull(),
+  updatedAt: timestamp("updatedAt").defaultNow().onUpdateNow().notNull(),
+});
+
+export type Transcription = typeof transcriptions.$inferSelect;
+export type InsertTranscription = typeof transcriptions.$inferInsert;

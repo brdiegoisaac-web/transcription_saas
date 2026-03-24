@@ -5,6 +5,7 @@ import { Card } from "@/components/ui/card";
 import TranscriptionEditor from "@/components/TranscriptionEditor";
 import { trpc } from "@/lib/trpc";
 import { toast } from "sonner";
+import { useLocation } from "wouter";
 
 interface Transcription {
   id: string;
@@ -19,6 +20,15 @@ interface Transcription {
   fileName: string;
   createdAt: Date;
   fileUrl?: string;
+}
+
+function HistoryButton() {
+  const [, setLocation] = useLocation();
+  return (
+    <Button variant="outline" size="sm" onClick={() => setLocation("/history")}>
+      Histórico
+    </Button>
+  );
 }
 
 export default function Home() {
@@ -194,6 +204,7 @@ export default function Home() {
             <a href="#" className="text-sm text-muted-foreground hover:text-foreground transition">
               Suporte
             </a>
+            <HistoryButton />
             <Button variant="outline" size="sm">
               Entrar
             </Button>
