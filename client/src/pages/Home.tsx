@@ -1,7 +1,8 @@
 import { useState } from "react";
-import { Upload, Link as LinkIcon, Loader2 } from "lucide-react";
+import { Upload, Link as LinkIcon, Loader2, AlertCircle } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
+import { Progress } from "@/components/ui/progress";
 import TranscriptionEditor from "@/components/TranscriptionEditor";
 import { trpc } from "@/lib/trpc";
 import { toast } from "sonner";
@@ -53,6 +54,36 @@ export default function Home() {
     setFileName(file.name);
 
     try {
+      // Validar tamanho do arquivo (máx 100MB)
+      const MAX_FILE_SIZE = 100 * 1024 * 1024;
+      if (file.size > MAX_FILE_SIZE) {
+        throw new Error(`Arquivo muito grande. Máximo: ${MAX_FILE_SIZE / 1024 / 1024}MB`);
+      }
+
+      // Validar formato de áudio
+      const SUPPORTED_FORMATS = ["mp3", "wav", "m4a", "ogg", "webm", "flac", "aac"];
+      const extension = file.name.split(".").pop()?.toLowerCase();
+      if (!extension || !SUPPORTED_FORMATS.includes(extension)) {
+        throw new Error(`Formato não suportado. Formatos aceitos: ${SUPPORTED_FORMATS.join(", ")}`);
+      }
+
+      // Validar tipo MIME
+      const SUPPORTED_MIME_TYPES = [
+        "audio/mpeg",
+        "audio/wav",
+        "audio/mp4",
+        "audio/ogg",
+        "audio/webm",
+        "audio/flac",
+        "audio/aac",
+        "video/mp4",
+        "video/quicktime",
+        "video/x-msvideo",
+      ];
+      if (!SUPPORTED_MIME_TYPES.includes(file.type)) {
+        throw new Error(`Tipo de arquivo não suportado: ${file.type}`);
+      }
+
       // Criar URL do arquivo para reprodução
       const fileUrl = URL.createObjectURL(file);
 
@@ -91,9 +122,14 @@ export default function Home() {
         }, 5000);
       });
 
-      // Se ainda não temos duração, usar um valor padrão
+      // Validar duração máxima (2 horas)
+      const MAX_DURATION = 2 * 60 * 60; // 2 horas em segundos
+      if (duration > MAX_DURATION) {
+        throw new Error(`Áudio muito longo. Máximo: ${MAX_DURATION / 60} minutos`);
+      }
+
       if (!duration || duration === 0) {
-        duration = 30; // 30 segundos como padrão
+        throw new Error("Não foi possível determinar a duração do áudio");
       }
 
       // Ler arquivo como base64
