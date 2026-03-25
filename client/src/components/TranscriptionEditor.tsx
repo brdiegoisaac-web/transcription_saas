@@ -213,11 +213,18 @@ export default function TranscriptionEditor({
     toast.success(`Transcrição exportada em ${exportFormat.toUpperCase()}!`);
   };
 
-  // Copiar texto completo
+  // Copiar texto completo com quebras de linha
   const handleCopyFullText = () => {
     const fullText = segments.map((seg) => `${seg.speaker}: ${seg.text}`).join("\n\n");
     navigator.clipboard.writeText(fullText);
     toast.success("Texto copiado para a área de transferência!");
+  };
+
+  // Copiar como parágrafo único (sem quebras)
+  const handleCopyAsParagraph = () => {
+    const paragraphText = segments.map((seg) => seg.text).join(" ");
+    navigator.clipboard.writeText(paragraphText);
+    toast.success("Parágrafo único copiado para a área de transferência!");
   };
 
   // Controles de tempo
@@ -252,7 +259,17 @@ export default function TranscriptionEditor({
                 size="icon" 
                 onClick={handleCopyFullText} 
                 className="h-8 w-8 sm:h-10 sm:w-10"
-                title="Copiar"
+                title="Copiar com quebras"
+              >
+                <Copy className="w-4 h-4" />
+              </Button>
+
+              <Button 
+                variant="ghost" 
+                size="icon" 
+                onClick={handleCopyAsParagraph} 
+                className="h-8 w-8 sm:h-10 sm:w-10"
+                title="Copiar parágrafo único"
               >
                 <Copy className="w-4 h-4" />
               </Button>
@@ -273,7 +290,12 @@ export default function TranscriptionEditor({
           <div className="hidden sm:flex items-center gap-2 justify-end">
             <Button variant="outline" size="sm" onClick={handleCopyFullText} className="gap-2">
               <Copy className="w-4 h-4" />
-              Copiar
+              Copiar com Quebras
+            </Button>
+
+            <Button variant="outline" size="sm" onClick={handleCopyAsParagraph} className="gap-2">
+              <Copy className="w-4 h-4" />
+              Parágrafo Único
             </Button>
 
             <Select value={exportFormat} onValueChange={setExportFormat}>

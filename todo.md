@@ -201,3 +201,6 @@
 5. ✅ Testes Básicos
 
 Quer que eu comece pela **FASE 1**?
+
+### Melhorias Rápidas (Implementadas na FASE 2+)
+- [x] Botão "Copiar como Parágrafo Único" no editor
