@@ -38,14 +38,14 @@
 **Objetivo:** Tornar o SaaS mais útil e competitivo com funcionalidades que criativos precisam.
 
 ### Editor Avançado
-- [ ] Edição inline de segmentos (duplo-clique para editar)
-- [ ] Busca full-text nas transcrições
-- [ ] Filtro por falante no histórico
-- [ ] Filtro por data no histórico
+- [x] Edição inline de segmentos (duplo-clique para editar)
+- [x] Busca full-text nas transcrições
+- [x] Filtro por idioma no histórico
+- [x] Ordenação por data, nome no histórico
 - [ ] Exportação em lote (múltiplas transcrições)
 
 ### Melhorias de Áudio
-- [ ] Suporte garantido a múltiplos formatos (MP3, WAV, M4A, OGG, WEBM, FLAC)
+- [x] Suporte garantido a múltiplos formatos (MP3, WAV, M4A, OGG, WEBM, FLAC, AAC, Opus, WMA, ALAC)
 - [ ] Compressão de áudio antes de enviar (reduz tempo de transcrição)
 - [ ] Extração de áudio de vídeos (MP4, MOV, AVI)
 - [ ] Identificação de falantes melhorada (diarização)
@@ -57,7 +57,7 @@
 - [ ] Restauração de transcrições deletadas
 
 ### UX/UI
-- [ ] Design responsivo para mobile
+- [x] Design responsivo para mobile (otimizado para smartphones e tablets)
 - [ ] Tema escuro/claro
 - [ ] Atalhos de teclado (Ctrl+S para salvar, etc)
 - [ ] Tooltips e ajuda contextual

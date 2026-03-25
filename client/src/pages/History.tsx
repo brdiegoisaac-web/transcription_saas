@@ -1,8 +1,8 @@
-import { useState, useEffect } from "react";
+import { useState } from "react";
 import { trpc } from "@/lib/trpc";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
-import { ArrowLeft, Trash2, Download, Search } from "lucide-react";
+import { ArrowLeft, Trash2, Download, Search, Filter, X } from "lucide-react";
 import { useLocation } from "wouter";
 import { formatDistanceToNow } from "date-fns";
 import { ptBR } from "date-fns/locale";
@@ -11,6 +11,9 @@ export default function History() {
   const [, setLocation] = useLocation();
   const [searchQuery, setSearchQuery] = useState("");
   const [selectedId, setSelectedId] = useState<number | null>(null);
+  const [filterLanguage, setFilterLanguage] = useState<"all" | "pt" | "en" | "es">("all");
+  const [sortBy, setSortBy] = useState<"newest" | "oldest" | "name">("newest");
+  const [showFilters, setShowFilters] = useState(false);
 
   // Buscar histórico
   const { data: transcriptions, isLoading, refetch } = trpc.history.list.useQuery({
@@ -37,7 +40,17 @@ export default function History() {
     { enabled: searchQuery.length > 0 }
   );
 
-  const displayTranscriptions = searchQuery.length > 0 ? searchResults : transcriptions;
+  // Processar e filtrar resultados
+  const processedTranscriptions = (searchQuery.length > 0 ? searchResults : transcriptions) || [];
+  
+  const filtered = processedTranscriptions
+    .filter((t) => filterLanguage === "all" || t.inputLanguage === filterLanguage)
+    .sort((a, b) => {
+      if (sortBy === "newest") return new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime();
+      if (sortBy === "oldest") return new Date(a.createdAt).getTime() - new Date(b.createdAt).getTime();
+      if (sortBy === "name") return a.fileName.localeCompare(b.fileName);
+      return 0;
+    });
 
   // Se uma transcrição foi selecionada, mostrar detalhes
   if (selectedId && selectedTranscription) {
@@ -137,7 +150,7 @@ export default function History() {
                 Copiar
               </Button>
             </div>
-            <p className="text-foreground leading-relaxed whitespace-pre-wrap">
+            <p className="text-foreground leading-relaxed whitespace-pre-wrap max-h-96 overflow-y-auto">
               {selectedTranscription.originalText}
             </p>
           </Card>
@@ -197,39 +210,115 @@ export default function History() {
           </Button>
         </div>
 
-        {/* Busca */}
-        <div className="mb-8">
+        {/* Busca e Filtros */}
+        <div className="mb-8 space-y-4">
+          {/* Barra de Busca */}
           <div className="relative">
             <Search className="absolute left-3 top-3 w-5 h-5 text-muted-foreground" />
             <input
               type="text"
-              placeholder="Buscar por nome do arquivo..."
+              placeholder="Buscar por nome, texto ou palavras-chave..."
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
               className="w-full pl-10 pr-4 py-2 rounded-lg border border-border bg-background text-foreground placeholder-muted-foreground focus:outline-none focus:ring-2 focus:ring-primary/50 transition"
             />
           </div>
+
+          {/* Botão de Filtros */}
+          <div className="flex items-center gap-2">
+            <Button
+              variant={showFilters ? "default" : "outline"}
+              size="sm"
+              onClick={() => setShowFilters(!showFilters)}
+              className="gap-2"
+            >
+              <Filter className="w-4 h-4" />
+              Filtros
+            </Button>
+            {(filterLanguage !== "all" || sortBy !== "newest") && (
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={() => {
+                  setFilterLanguage("all");
+                  setSortBy("newest");
+                }}
+                className="gap-2"
+              >
+                <X className="w-4 h-4" />
+                Limpar
+              </Button>
+            )}
+          </div>
+
+          {/* Painel de Filtros */}
+          {showFilters && (
+            <Card className="bg-card/50 border border-border/50 p-4 space-y-4">
+              <div>
+                <label className="text-sm font-medium text-foreground block mb-2">
+                  Idioma de Entrada
+                </label>
+                <div className="flex gap-2 flex-wrap">
+                  {["all", "pt", "en", "es"].map((lang) => (
+                    <Button
+                      key={lang}
+                      variant={filterLanguage === lang ? "default" : "outline"}
+                      size="sm"
+                      onClick={() => setFilterLanguage(lang as any)}
+                    >
+                      {lang === "all" ? "Todos" : lang === "pt" ? "Português" : lang === "en" ? "Inglês" : "Espanhol"}
+                    </Button>
+                  ))}
+                </div>
+              </div>
+
+              <div>
+                <label className="text-sm font-medium text-foreground block mb-2">
+                  Ordenar por
+                </label>
+                <div className="flex gap-2 flex-wrap">
+                  {["newest", "oldest", "name"].map((sort) => (
+                    <Button
+                      key={sort}
+                      variant={sortBy === sort ? "default" : "outline"}
+                      size="sm"
+                      onClick={() => setSortBy(sort as any)}
+                    >
+                      {sort === "newest" ? "Mais Recentes" : sort === "oldest" ? "Mais Antigos" : "Nome"}
+                    </Button>
+                  ))}
+                </div>
+              </div>
+            </Card>
+          )}
         </div>
+
+        {/* Contador de Resultados */}
+        {filtered.length > 0 && (
+          <p className="text-sm text-muted-foreground mb-4">
+            {filtered.length} transcrição{filtered.length !== 1 ? "s" : ""} encontrada{filtered.length !== 1 ? "s" : ""}
+          </p>
+        )}
 
         {/* Lista */}
         {isLoading ? (
           <div className="text-center py-12">
             <p className="text-muted-foreground">Carregando histórico...</p>
           </div>
-        ) : displayTranscriptions && displayTranscriptions.length > 0 ? (
+        ) : filtered.length > 0 ? (
           <div className="space-y-3">
-            {displayTranscriptions.map((transcription) => (
+            {filtered.map((transcription) => (
               <Card
                 key={transcription.id}
                 className="bg-card/50 backdrop-blur-sm border border-border/50 p-4 hover:border-primary/50 transition cursor-pointer"
                 onClick={() => setSelectedId(transcription.id)}
               >
                 <div className="flex items-center justify-between">
-                  <div className="flex-1">
-                    <h3 className="font-semibold text-foreground">
+                  <div className="flex-1 min-w-0">
+                    <h3 className="font-semibold text-foreground truncate">
                       {transcription.fileName}
                     </h3>
-                    <p className="text-sm text-muted-foreground mt-1">
+                    <p className="text-sm text-muted-foreground mt-1 line-clamp-1">
                       {transcription.segments.length} segmentos •{" "}
                       {Math.floor(transcription.duration / 60)}m{" "}
                       {transcription.duration % 60}s •{" "}
@@ -239,7 +328,7 @@ export default function History() {
                       })}
                     </p>
                   </div>
-                  <div className="flex items-center gap-2">
+                  <div className="flex items-center gap-2 ml-4 flex-shrink-0">
                     <span className="text-xs px-2 py-1 rounded-full bg-primary/10 text-primary">
                       {transcription.inputLanguage === "pt"
                         ? "PT"
@@ -256,7 +345,7 @@ export default function History() {
           <div className="text-center py-12">
             <p className="text-muted-foreground">
               {searchQuery
-                ? "Nenhuma transcrição encontrada"
+                ? "Nenhuma transcrição encontrada com esses critérios"
                 : "Nenhuma transcrição salva ainda"}
             </p>
           </div>

@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { Upload, Link as LinkIcon, Loader2, AlertCircle } from "lucide-react";
+import { Upload, Loader2, AlertCircle } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { Progress } from "@/components/ui/progress";
@@ -7,6 +7,15 @@ import TranscriptionEditor from "@/components/TranscriptionEditor";
 import { trpc } from "@/lib/trpc";
 import { toast } from "sonner";
 import { useLocation } from "wouter";
+import {
+  ALL_SUPPORTED_FORMATS,
+  SUPPORTED_MIME_TYPES,
+  MAX_FILE_SIZE,
+  MAX_DURATION,
+  formatSizeInMB,
+  formatDuration,
+  isFormatSupported,
+} from "@/lib/audioFormats";
 
 interface Transcription {
   id: string;
@@ -39,8 +48,8 @@ export default function Home() {
   const [fileName, setFileName] = useState("");
   const [inputLanguage, setInputLanguage] = useState<"pt" | "en" | "es">("pt");
   const [outputLanguage, setOutputLanguage] = useState<"pt" | "en" | "es">("pt");
+  const [uploadProgress, setUploadProgress] = useState(0);
   const transcribeMutation = trpc.transcription.transcribeFile.useMutation();
-  const youTubeMutation = trpc.transcription.transcribeYouTube.useMutation();
 
   const languageOptions = [
     { code: "pt", label: "Português" },
@@ -52,37 +61,27 @@ export default function Home() {
   const handleFileUpload = async (file: File) => {
     setIsLoading(true);
     setFileName(file.name);
+    setUploadProgress(0);
 
     try {
-      // Validar tamanho do arquivo (máx 100MB)
-      const MAX_FILE_SIZE = 100 * 1024 * 1024;
+      // Validar tamanho do arquivo
       if (file.size > MAX_FILE_SIZE) {
-        throw new Error(`Arquivo muito grande. Máximo: ${MAX_FILE_SIZE / 1024 / 1024}MB`);
+        throw new Error(`Arquivo muito grande. Máximo: ${formatSizeInMB(MAX_FILE_SIZE)}MB`);
       }
 
-      // Validar formato de áudio
-      const SUPPORTED_FORMATS = ["mp3", "wav", "m4a", "ogg", "webm", "flac", "aac"];
-      const extension = file.name.split(".").pop()?.toLowerCase();
-      if (!extension || !SUPPORTED_FORMATS.includes(extension)) {
-        throw new Error(`Formato não suportado. Formatos aceitos: ${SUPPORTED_FORMATS.join(", ")}`);
+      // Validar formato de áudio/vídeo
+      if (!isFormatSupported(file.name)) {
+        throw new Error(
+          `Formato não suportado. Formatos aceitos:\n\nÁudio: mp3, wav, m4a, aac, ogg, opus, flac, wma\n\nVídeo: mp4, mov, avi, mkv, webm, flv, wmv`
+        );
       }
 
-      // Validar tipo MIME
-      const SUPPORTED_MIME_TYPES = [
-        "audio/mpeg",
-        "audio/wav",
-        "audio/mp4",
-        "audio/ogg",
-        "audio/webm",
-        "audio/flac",
-        "audio/aac",
-        "video/mp4",
-        "video/quicktime",
-        "video/x-msvideo",
-      ];
-      if (!SUPPORTED_MIME_TYPES.includes(file.type)) {
-        throw new Error(`Tipo de arquivo não suportado: ${file.type}`);
+      // Validar tipo MIME (permitir tipos desconhecidos se extensão for válida)
+      if (file.type && !SUPPORTED_MIME_TYPES.includes(file.type)) {
+        console.warn(`Tipo MIME desconhecido: ${file.type}, mas extensão é válida`);
       }
+
+      setUploadProgress(20);
 
       // Criar URL do arquivo para reprodução
       const fileUrl = URL.createObjectURL(file);
@@ -122,15 +121,18 @@ export default function Home() {
         }, 5000);
       });
 
-      // Validar duração máxima (2 horas)
-      const MAX_DURATION = 2 * 60 * 60; // 2 horas em segundos
+      setUploadProgress(40);
+
+      // Validar duração máxima
       if (duration > MAX_DURATION) {
-        throw new Error(`Áudio muito longo. Máximo: ${MAX_DURATION / 60} minutos`);
+        throw new Error(`Áudio muito longo. Máximo: ${formatDuration(MAX_DURATION)}`);
       }
 
       if (!duration || duration === 0) {
         throw new Error("Não foi possível determinar a duração do áudio");
       }
+
+      setUploadProgress(60);
 
       // Ler arquivo como base64
       const reader = new FileReader();
@@ -143,6 +145,8 @@ export default function Home() {
         reader.readAsDataURL(file);
       });
 
+      setUploadProgress(80);
+
       // Chamar API de transcrição real
       const transcriptionResult = await transcribeMutation.mutateAsync({
         audioBase64,
@@ -150,6 +154,8 @@ export default function Home() {
         inputLanguage,
         outputLanguage,
       });
+
+      setUploadProgress(95);
 
       if (!transcriptionResult.success || !transcriptionResult.data) {
         throw new Error(transcriptionResult.error || "Erro ao transcrever áudio");
@@ -166,47 +172,14 @@ export default function Home() {
       // Passar o URL do arquivo para o editor
       setTranscription({ ...mockTranscription, fileUrl });
       setCurrentView("editor");
+      setUploadProgress(100);
       toast.success("Áudio transcrito com sucesso!");
     } catch (error) {
       console.error("Erro ao processar arquivo:", error);
       toast.error(error instanceof Error ? error.message : "Erro ao processar arquivo");
     } finally {
       setIsLoading(false);
-    }
-  };
-
-  const handleLinkSubmit = async (link: string) => {
-    setIsLoading(true);
-    setFileName(link);
-
-    try {
-      // Chamar API de transcrição do YouTube
-      const result = await youTubeMutation.mutateAsync({
-        youtubeUrl: link,
-        inputLanguage,
-        outputLanguage,
-      });
-
-      if (!result.success || !result.data) {
-        throw new Error(result.error || "Erro ao transcrever vídeo do YouTube");
-      }
-
-      const transcription: Transcription = {
-        id: Math.random().toString(36).substr(2, 9),
-        fileName: link,
-        text: result.data.text,
-        segments: result.data.segments,
-        createdAt: new Date(),
-      };
-
-      setTranscription(transcription);
-      setCurrentView("editor");
-      toast.success("Vídeo do YouTube transcrito com sucesso!");
-    } catch (error) {
-      console.error("Erro ao processar link do YouTube:", error);
-      toast.error(error instanceof Error ? error.message : "Erro ao transcrever vídeo do YouTube");
-    } finally {
-      setIsLoading(false);
+      setUploadProgress(0);
     }
   };
 
@@ -265,7 +238,7 @@ export default function Home() {
           </div>
 
           {/* Language Selection */}
-          <div className="mb-8 grid grid-cols-2 gap-4 md:gap-6">
+          <div className="mb-8 grid grid-cols-1 sm:grid-cols-2 gap-4 md:gap-6">
             <div>
               <label className="block text-sm font-medium text-foreground mb-2">
                 Idioma do Áudio
@@ -304,7 +277,7 @@ export default function Home() {
           <div className="space-y-6">
             {/* File Upload Card */}
             <Card className="border-2 border-dashed border-border/50 hover:border-primary/50 transition-colors bg-card/50 backdrop-blur-sm">
-              <div className="p-12">
+              <div className="p-8 md:p-12">
                 <label className="flex flex-col items-center justify-center cursor-pointer">
                   <Upload className="w-12 h-12 text-muted-foreground mb-4" />
                   <span className="text-lg font-semibold text-foreground mb-2">
@@ -313,12 +286,12 @@ export default function Home() {
                   <span className="text-sm text-muted-foreground mb-4">
                     ou clique para selecionar
                   </span>
-                  <span className="text-xs text-muted-foreground">
-                    Suporta MP3, MP4, MOV, WAV, M4A e outros formatos
+                  <span className="text-xs text-muted-foreground text-center mb-2">
+                    Máximo: {formatSizeInMB(MAX_FILE_SIZE)}MB • Duração: até {formatDuration(MAX_DURATION)}
                   </span>
                   <input
                     type="file"
-                    accept="audio/*,video/*"
+                    accept={ALL_SUPPORTED_FORMATS.map((fmt) => `.${fmt}`).join(",")}
                     className="hidden"
                     disabled={isLoading}
                     onChange={(e) => {
@@ -329,6 +302,60 @@ export default function Home() {
                 </label>
               </div>
             </Card>
+
+            {/* Supported Formats Info */}
+            <Card className="bg-card/50 border border-border/50 p-6">
+              <div className="space-y-4">
+                <h3 className="font-semibold text-foreground">Formatos Suportados</h3>
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                  <div>
+                    <p className="text-sm font-medium text-muted-foreground mb-2">Áudio</p>
+                    <p className="text-sm text-foreground">
+                      MP3, WAV, M4A, AAC, OGG, Opus, FLAC, WMA, ALAC
+                    </p>
+                  </div>
+                  <div>
+                    <p className="text-sm font-medium text-muted-foreground mb-2">Vídeo</p>
+                    <p className="text-sm text-foreground">
+                      MP4, MOV, AVI, MKV, WebM, FLV, WMV, 3GP, OGV
+                    </p>
+                  </div>
+                </div>
+              </div>
+            </Card>
+
+            {/* Progress Bar */}
+            {isLoading && uploadProgress > 0 && (
+              <div className="space-y-2">
+                <div className="flex items-center justify-between">
+                  <span className="text-sm font-medium text-foreground">
+                    {uploadProgress < 20
+                      ? "Validando arquivo..."
+                      : uploadProgress < 40
+                      ? "Lendo duração..."
+                      : uploadProgress < 60
+                      ? "Preparando upload..."
+                      : uploadProgress < 80
+                      ? "Enviando para transcrição..."
+                      : uploadProgress < 95
+                      ? "Transcrevendo com IA..."
+                      : "Finalizando..."}
+                  </span>
+                  <span className="text-sm text-muted-foreground">{uploadProgress}%</span>
+                </div>
+                <Progress value={uploadProgress} className="h-2" />
+              </div>
+            )}
+
+            {/* Loading State */}
+            {isLoading && (
+              <div className="flex items-center justify-center gap-3 py-8">
+                <Loader2 className="w-5 h-5 animate-spin text-primary" />
+                <span className="text-sm text-muted-foreground">
+                  Processando {fileName}...
+                </span>
+              </div>
+            )}
           </div>
         </div>
       </main>
