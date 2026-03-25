@@ -257,26 +257,6 @@ export default function TranscriptionEditor({
               <Button 
                 variant="ghost" 
                 size="icon" 
-                onClick={handleCopyFullText} 
-                className="h-8 w-8 sm:h-10 sm:w-10"
-                title="Copiar com quebras"
-              >
-                <Copy className="w-4 h-4" />
-              </Button>
-
-              <Button 
-                variant="ghost" 
-                size="icon" 
-                onClick={handleCopyAsParagraph} 
-                className="h-8 w-8 sm:h-10 sm:w-10"
-                title="Copiar parágrafo único"
-              >
-                <Copy className="w-4 h-4" />
-              </Button>
-
-              <Button 
-                variant="ghost" 
-                size="icon" 
                 onClick={handleExport} 
                 className="h-8 w-8 sm:h-10 sm:w-10"
                 title="Exportar"
