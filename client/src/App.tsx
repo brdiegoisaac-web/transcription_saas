@@ -6,6 +6,8 @@ import ErrorBoundary from "./components/ErrorBoundary";
 import { ThemeProvider } from "./contexts/ThemeContext";
 import Home from "./pages/Home";
 import History from "./pages/History";
+import Login from "./pages/Login";
+import Profile from "./pages/Profile";
 import { useAuth } from "@/_core/hooks/useAuth";
 import { Loader2 } from "lucide-react";
 import { getLoginUrl } from "./const";
@@ -33,9 +35,13 @@ function ProtectedRoute({ component: Component }: { component: React.ComponentTy
 function Router() {
   return (
     <Switch>
-      <Route path={"/"} component={Home} />
+      <Route path={"/ "} component={Home} />
+      <Route path={"/login"} component={Login} />
       <Route path={"/history"}>
         {() => <ProtectedRoute component={History} />}
+      </Route>
+      <Route path={"/profile"}>
+        {() => <ProtectedRoute component={Profile} />}
       </Route>
       <Route path={"/404"} component={NotFound} />
       {/* Final fallback route */}

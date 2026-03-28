@@ -67,15 +67,15 @@
 
 ---
 
-## ⭐ FASE 3: DIFERENCIADORES (Bônus - Fazer Depois)
+## ⊭ FASE 3: DIFERENCIADORES (Bônus - Fazer Depois)
 **Objetivo:** Diferenciar do concorrente com funcionalidades únicas para criativos.
 
 ### Geração de Conteúdo
-- [ ] Gerador de Roteiros Automático (transcrição → roteiro de anúncio)
-- [ ] Tradução automática entre os 3 idiomas
-- [ ] Resumo automático de transcrições
-- [ ] Extração de palavras-chave
-- [ ] Análise de sentimento
+- [x] Gerador de Roteiros Automático (transcrição → roteiro de anúncio)
+- [x] Tradução automática entre os 3 idiomas
+- [x] Resumo automático de transcrições
+- [x] Extração de palavras-chave
+- [x] Análise de sentimento
 
 ### Colaboração
 - [ ] Compartilhamento de transcrições com links
@@ -204,3 +204,49 @@ Quer que eu comece pela **FASE 1**?
 
 ### Melhorias Rápidas (Implementadas na FASE 2+)
 - [x] Botão "Copiar como Parágrafo Único" no editor
+
+---
+
+## 🔐 MELHORIAS DE LOGIN & AUTENTICAÇÃO (Crítico)
+**Objetivo:** Melhorar experiência de login e segurança do usuário.
+
+### Sistema de Login
+- [x] Página de login dedicada com design profissional
+- [ ] Recuperação de senha por email
+- [ ] Confirmação de email para novos usuários
+- [ ] Opção de login com Google/GitHub
+- [ ] Sessão persistente (lembrar usuário)
+
+### Perfil de Usuário
+- [x] Página de perfil do usuário
+- [x] Editar nome, email, foto de perfil
+- [ ] Gerenciar preferências de idioma
+- [ ] Histórico de atividades
+- [x] Deletar conta e dados
+
+### Segurança
+- [ ] Autenticação de dois fatores (2FA)
+- [ ] Validação de email antes de usar conta
+- [ ] Rate limiting em login (máx 5 tentativas/minuto)
+- [ ] Logout automático após inatividade (30 min)
+
+**Tempo Estimado:** 2-3 dias
+
+---
+
+## ⭐ FASE 3+: DIFERENCIADORES AVANÇADOS (Implementação Rápida)
+**Objetivo:** Adicionar funcionalidades de IA para diferenciar do concorrente.
+
+### Geração de Conteúdo com IA
+- [ ] Gerador de Roteiros Automático (transcrição → roteiro de anúncio)
+- [ ] Tradução automática entre 3 idiomas (PT, EN, ES)
+- [ ] Resumo automático de transcrições
+- [ ] Extração de palavras-chave
+- [ ] Análise de sentimento
+
+### Integração com Manus Built-in APIs
+- [ ] Usar invokeLLM para processamento de texto
+- [ ] Usar generateImage para criar imagens de capa
+- [ ] Usar storagePut para salvar resultados
+
+**Tempo Estimado:** 1-2 dias

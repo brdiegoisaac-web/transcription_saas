@@ -41,6 +41,15 @@ function HistoryButton() {
   );
 }
 
+function ProfileButton() {
+  const [, setLocation] = useLocation();
+  return (
+    <Button variant="outline" size="sm" onClick={() => setLocation("/profile")}>
+      Perfil
+    </Button>
+  );
+}
+
 export default function Home() {
   const [currentView, setCurrentView] = useState<"upload" | "editor">("upload");
   const [isLoading, setIsLoading] = useState(false);
@@ -214,6 +223,7 @@ export default function Home() {
               Suporte
             </a>
             <HistoryButton />
+            <ProfileButton />
             <Button variant="outline" size="sm">
               Entrar
             </Button>
