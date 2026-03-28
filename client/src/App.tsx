@@ -35,7 +35,7 @@ function ProtectedRoute({ component: Component }: { component: React.ComponentTy
 function Router() {
   return (
     <Switch>
-      <Route path={"/ "} component={Home} />
+      <Route path={"/"} component={Home} />
       <Route path={"/login"} component={Login} />
       <Route path={"/history"}>
         {() => <ProtectedRoute component={History} />}

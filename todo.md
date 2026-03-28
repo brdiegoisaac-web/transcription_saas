@@ -250,3 +250,7 @@ Quer que eu comece pela **FASE 1**?
 - [ ] Usar storagePut para salvar resultados
 
 **Tempo Estimado:** 1-2 dias
+
+
+## 🐛 BUGS A CORRIGIR
+- [x] Rota /?from_webdev=1 retorna 404 error (corrigido: removido espaço extra na rota raiz)
