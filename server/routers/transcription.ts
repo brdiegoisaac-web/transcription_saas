@@ -1,6 +1,6 @@
 import { z } from "zod";
 import { publicProcedure, router } from "../_core/trpc";
-import { transcribeWithGroq } from "../transcription";
+import { transcribeWithGroq, cleanupTranscriptionText } from "../transcription";
 import { transcribeYouTubeVideo } from "../youtube";
 
 export const transcriptionRouter = router({
@@ -25,9 +25,17 @@ export const transcriptionRouter = router({
           input.inputLanguage || "pt"
         );
 
+        // Limpar pontuacao e formatacao via LLM
+        const cleanedSegments = await cleanupTranscriptionText(result.segments);
+        const cleanedText = cleanedSegments.map((s) => s.text).join(" ");
+
         return {
           success: true,
-          data: result,
+          data: {
+            ...result,
+            text: cleanedText,
+            segments: cleanedSegments,
+          },
         };
       } catch (error) {
         console.error("[Transcription Router] Erro:", error);

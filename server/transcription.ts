@@ -1,4 +1,5 @@
 import { ENV } from "./_core/env";
+import { invokeLLM } from "./_core/llm";
 
 export interface TranscriptionSegment {
   id: number;
@@ -102,12 +103,14 @@ function processTranscriptionSegments(
   }
 
   // Mapear segmentos da API
+  // Whisper não faz diarização real — manter como falante único
+  // a menos que a API retorne dados de speaker reais
   return apiSegments.map((seg, idx) => ({
     id: idx,
     start: seg.start || 0,
     end: seg.end || 0,
     text: seg.text || "",
-    speaker: idx % 2 === 0 ? "Falante A" : "Falante B",
+    speaker: seg.speaker || "Falante A",
   }));
 }
 
@@ -131,11 +134,72 @@ function createDefaultSegments(text: string): TranscriptionSegment[] {
       start: currentTime,
       end: currentTime + duration,
       text: sentence.trim(),
-      speaker: idx % 2 === 0 ? "Falante A" : "Falante B",
+      speaker: "Falante A",
     });
 
     currentTime += duration;
   });
 
   return segments;
+}
+
+/**
+ * Limpar e melhorar pontuação da transcrição usando LLM
+ * Processa todos os segmentos de uma vez pra eficiência
+ */
+export async function cleanupTranscriptionText(
+  segments: TranscriptionSegment[]
+): Promise<TranscriptionSegment[]> {
+  if (segments.length === 0) return segments;
+
+  // Montar texto com marcadores de segmento
+  const numberedText = segments
+    .map((seg, idx) => `[${idx}] ${seg.text}`)
+    .join("\n");
+
+  try {
+    const response = await invokeLLM({
+      messages: [
+        {
+          role: "system",
+          content: `Você é um corretor de transcrições de áudio. Sua tarefa é APENAS corrigir pontuação, capitalização e formatação do texto transcrito.
+
+REGRAS:
+- Adicione pontos finais, vírgulas, pontos de interrogação e exclamação onde necessário
+- Capitalize início de frases e nomes próprios
+- NÃO altere as palavras — mantenha exatamente o que foi falado
+- NÃO adicione ou remova palavras
+- NÃO resuma ou reescreva
+- Mantenha os marcadores [N] no início de cada linha
+- Responda APENAS com as linhas corrigidas, uma por linha, cada uma começando com [N]`,
+        },
+        {
+          role: "user",
+          content: numberedText,
+        },
+      ],
+    });
+
+    const cleanedText = (response.choices[0]?.message?.content as string) || "";
+    
+    // Parsear resposta e aplicar aos segmentos
+    const cleanedLines = cleanedText.split("\n").filter((l) => l.trim());
+    const cleanedMap = new Map<number, string>();
+
+    for (const line of cleanedLines) {
+      const match = line.match(/^\[(\d+)\]\s*(.+)$/);
+      if (match) {
+        cleanedMap.set(parseInt(match[1]), match[2].trim());
+      }
+    }
+
+    return segments.map((seg, idx) => ({
+      ...seg,
+      text: cleanedMap.get(idx) || seg.text,
+    }));
+  } catch (error) {
+    console.error("[Transcription] Erro ao limpar texto:", error);
+    // Em caso de erro, retornar segmentos originais
+    return segments;
+  }
 }

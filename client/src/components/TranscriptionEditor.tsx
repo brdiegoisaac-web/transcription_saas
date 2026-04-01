@@ -10,6 +10,7 @@ import {
 } from "@/components/ui/select";
 import { toast } from "sonner";
 import { trpc } from "@/lib/trpc";
+import CreativeAnalysis from "@/components/CreativeAnalysis";
 
 interface Segment {
   id: number;
@@ -301,7 +302,7 @@ export default function TranscriptionEditor({
           {/* Mobile: Export format selector and save button */}
           <div className="sm:hidden flex items-center gap-2 justify-between">
             <Select value={exportFormat} onValueChange={setExportFormat}>
-              <SelectTrigger className="w-20 h-8 text-xs">
+              <SelectTrigger className="w-20 text-xs h-8">
                 <SelectValue />
               </SelectTrigger>
               <SelectContent>
@@ -317,61 +318,64 @@ export default function TranscriptionEditor({
       </header>
 
       {/* Player - Responsivo */}
-      <div className="border-b border-border bg-muted/50">
-        <div className="px-4 sm:px-6 py-4 sm:py-6 space-y-3 sm:space-y-4">
-          {/* Waveform placeholder */}
-          <div className="h-12 sm:h-16 bg-gradient-to-r from-primary/20 to-accent/20 rounded-lg flex items-center px-3 sm:px-4">
-            <div className="flex gap-1 items-center h-full w-full">
-              {segments.map((_, i) => (
-                <div
-                  key={i}
-                  className="flex-1 bg-primary/40 rounded-sm"
-                  style={{
-                    height: `${30 + Math.random() * 50}%`,
-                  }}
-                />
-              ))}
-            </div>
-          </div>
-
-          {/* Timeline */}
-          <div className="space-y-2">
-            <input
-              type="range"
-              min="0"
-              max={totalDuration}
-              value={currentTime}
-              onChange={(e) => {
-                if (audioRef.current) {
-                  audioRef.current.currentTime = parseFloat(e.target.value);
-                }
-              }}
-              className="w-full"
-            />
-            <div className="flex justify-between text-xs sm:text-sm text-muted-foreground">
-              <span>{formatTime(currentTime)}</span>
-              <span>{formatTime(totalDuration)}</span>
-            </div>
-          </div>
-
-          {/* Controls */}
-          <div className="flex items-center justify-center gap-2 sm:gap-4">
-            <Button variant="outline" size="sm" onClick={() => handleSkip(-5)} className="text-xs sm:text-sm">
-              -5s
-            </Button>
+      <div className="border-b border-border bg-muted/30">
+        <div className="px-4 sm:px-6 py-3 sm:py-4">
+          <div className="flex items-center gap-2 sm:gap-4">
+            {/* Play/Pause */}
             <Button
-              size="lg"
-              className="rounded-full w-12 h-12 sm:w-14 sm:h-14"
+              variant="outline"
+              size="icon"
               onClick={() => setIsPlaying(!isPlaying)}
+              className="flex-shrink-0 h-8 w-8 sm:h-10 sm:w-10"
             >
-              {isPlaying ? <Pause className="w-5 h-5 sm:w-6 sm:h-6" /> : <Play className="w-5 h-5 sm:w-6 sm:h-6" />}
+              {isPlaying ? <Pause className="w-4 h-4" /> : <Play className="w-4 h-4" />}
             </Button>
-            <Button variant="outline" size="sm" onClick={() => handleSkip(5)} className="text-xs sm:text-sm">
-              +5s
-            </Button>
-            <Button variant="outline" size="icon" className="h-9 w-9 sm:h-10 sm:w-10">
-              <Volume2 className="w-4 h-4" />
-            </Button>
+
+            {/* Progress bar */}
+            <div className="flex-1 min-w-0">
+              <input
+                type="range"
+                min="0"
+                max={totalDuration}
+                value={currentTime}
+                onChange={(e) => {
+                  if (audioRef.current) {
+                    audioRef.current.currentTime = parseFloat(e.target.value);
+                  }
+                }}
+                className="w-full h-2 bg-muted rounded-lg appearance-none cursor-pointer"
+              />
+              <div className="flex items-center justify-between mt-1">
+                <span className="text-xs text-muted-foreground">
+                  {formatTime(currentTime).split(",")[0]}
+                </span>
+                <span className="text-xs text-muted-foreground">
+                  {formatTime(totalDuration).split(",")[0]}
+                </span>
+              </div>
+            </div>
+
+            {/* Skip buttons */}
+            <div className="flex gap-1 flex-shrink-0">
+              <Button
+                variant="outline"
+                size="icon"
+                onClick={() => handleSkip(-5)}
+                className="h-8 w-8 sm:h-10 sm:w-10 text-xs"
+                title="Voltar 5s"
+              >
+                -5
+              </Button>
+              <Button
+                variant="outline"
+                size="icon"
+                onClick={() => handleSkip(5)}
+                className="h-8 w-8 sm:h-10 sm:w-10 text-xs"
+                title="Avançar 5s"
+              >
+                +5
+              </Button>
+            </div>
           </div>
         </div>
       </div>
@@ -498,6 +502,12 @@ export default function TranscriptionEditor({
           )}
         </div>
       </div>
+
+      {/* Análise de Criativo com IA */}
+      <CreativeAnalysis
+        text={segments.map((seg) => seg.text).join(" ")}
+        segments={segments}
+      />
 
       {/* Audio element */}
       <audio ref={audioRef} />
