@@ -254,3 +254,6 @@ Quer que eu comece pela **FASE 1**?
 
 ## 🐛 BUGS A CORRIGIR
 - [x] Rota /?from_webdev=1 retorna 404 error (corrigido: removido espaço extra na rota raiz)
+
+### Bugs Encontrados
+- [x] Erro ao analisar criativo - CORRIGIDO: usar tRPC em vez de fetch direto

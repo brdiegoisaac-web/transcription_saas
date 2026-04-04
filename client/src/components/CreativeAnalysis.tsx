@@ -178,6 +178,8 @@ export default function CreativeAnalysis({ text, segments }: CreativeAnalysisPro
   const [variationFocus, setVariationFocus] = useState<"completo" | "hook" | "cta" | "emocional">("completo");
   const [variations, setVariations] = useState<GeneratedVariation[]>([]);
 
+  const analyzeMutation = trpc.creativeAnalyzer.analyzeCreative.useMutation();
+
   const handleAnalyze = async () => {
     if (!text.trim()) {
       toast.error("Nenhum texto para analisar");
@@ -186,53 +188,48 @@ export default function CreativeAnalysis({ text, segments }: CreativeAnalysisPro
 
     setIsAnalyzing(true);
     try {
-      const response = await fetch("/api/trpc/creativeAnalyzer.analyzeCreative", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          input: { text, segments },
-        }),
+      const result = await analyzeMutation.mutateAsync({
+        text,
+        segments,
       });
 
-      const data = await response.json();
-      if (data.result?.data?.analysis) {
-        setAnalysis(data.result.data.analysis);
+      if (result.success && result.analysis) {
+        setAnalysis(result.analysis);
         toast.success("Análise concluída!");
       } else {
-        toast.error("Erro ao analisar criativo");
+        toast.error(result.error || "Erro ao analisar criativo");
       }
     } catch (error) {
-      toast.error("Erro ao conectar com a IA");
+      console.error("Erro ao analisar:", error);
+      toast.error(error instanceof Error ? error.message : "Erro ao conectar com a IA");
     } finally {
       setIsAnalyzing(false);
     }
   };
+
+  const variationsMutation = trpc.creativeAnalyzer.generateVariations.useMutation();
 
   const handleGenerateVariations = async () => {
     if (!analysis) return;
 
     setIsGenerating(true);
     try {
-      const response = await fetch("/api/trpc/creativeAnalyzer.generateVariations", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          input: {
-            originalText: text,
-            analysisJson: JSON.stringify(analysis),
-            numberOfVariations: 3,
-            focus: variationFocus,
-          },
-        }),
+      const result = await variationsMutation.mutateAsync({
+        originalText: text,
+        analysisJson: JSON.stringify(analysis),
+        numberOfVariations: 3,
+        focus: variationFocus,
       });
 
-      const data = await response.json();
-      if (data.result?.data?.variations) {
-        setVariations(data.result.data.variations);
+      if (result.success && result.variations) {
+        setVariations(result.variations);
         toast.success("Variações geradas!");
+      } else {
+        toast.error(result.error || "Erro ao gerar variações");
       }
     } catch (error) {
-      toast.error("Erro ao gerar variações");
+      console.error("Erro ao gerar variações:", error);
+      toast.error(error instanceof Error ? error.message : "Erro ao gerar variações");
     } finally {
       setIsGenerating(false);
     }
