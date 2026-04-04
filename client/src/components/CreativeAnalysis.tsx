@@ -96,15 +96,15 @@ interface GeneratedVariation {
 }
 
 const BLOCK_CONFIG: Record<string, { color: string; bg: string; icon: React.ReactNode; label: string }> = {
-  hook: { color: "text-gray-900", bg: "bg-gray-50 border-gray-200", icon: <Zap className="w-4 h-4" />, label: "Hook" },
-  contexto: { color: "text-gray-900", bg: "bg-gray-50 border-gray-200", icon: <Eye className="w-4 h-4" />, label: "Contexto" },
-  problema: { color: "text-gray-900", bg: "bg-gray-50 border-gray-200", icon: <AlertTriangle className="w-4 h-4" />, label: "Problema" },
-  agitacao: { color: "text-gray-900", bg: "bg-gray-50 border-gray-200", icon: <TrendingUp className="w-4 h-4" />, label: "Agitação" },
-  insight: { color: "text-gray-900", bg: "bg-gray-50 border-gray-200", icon: <Lightbulb className="w-4 h-4" />, label: "Insight" },
-  solucao: { color: "text-gray-900", bg: "bg-gray-50 border-gray-200", icon: <Target className="w-4 h-4" />, label: "Solução" },
-  prova: { color: "text-gray-900", bg: "bg-gray-50 border-gray-200", icon: <BarChart3 className="w-4 h-4" />, label: "Prova" },
-  cta: { color: "text-gray-900", bg: "bg-gray-50 border-gray-200", icon: <MessageSquare className="w-4 h-4" />, label: "CTA" },
-  micro_hook: { color: "text-gray-900", bg: "bg-gray-50 border-gray-200", icon: <Zap className="w-3 h-3" />, label: "Micro-Hook" },
+  hook: { color: "text-blue-900", bg: "bg-blue-50 border-blue-200", icon: <Zap className="w-4 h-4" />, label: "Hook" },
+  contexto: { color: "text-blue-900", bg: "bg-blue-50 border-blue-200", icon: <Eye className="w-4 h-4" />, label: "Contexto" },
+  problema: { color: "text-blue-900", bg: "bg-blue-50 border-blue-200", icon: <AlertTriangle className="w-4 h-4" />, label: "Problema" },
+  agitacao: { color: "text-blue-900", bg: "bg-blue-50 border-blue-200", icon: <TrendingUp className="w-4 h-4" />, label: "Agitação" },
+  insight: { color: "text-blue-900", bg: "bg-blue-50 border-blue-200", icon: <Lightbulb className="w-4 h-4" />, label: "Insight" },
+  solucao: { color: "text-blue-900", bg: "bg-blue-50 border-blue-200", icon: <Target className="w-4 h-4" />, label: "Solução" },
+  prova: { color: "text-blue-900", bg: "bg-blue-50 border-blue-200", icon: <BarChart3 className="w-4 h-4" />, label: "Prova" },
+  cta: { color: "text-blue-900", bg: "bg-blue-50 border-blue-200", icon: <MessageSquare className="w-4 h-4" />, label: "CTA" },
+  micro_hook: { color: "text-blue-900", bg: "bg-blue-50 border-blue-200", icon: <Zap className="w-3 h-3" />, label: "Micro-Hook" },
 };
 
 function ScoreBar({ label, score, max = 10 }: { label: string; score: number; max?: number }) {
@@ -242,13 +242,13 @@ export default function CreativeAnalysis({ text, segments }: CreativeAnalysisPro
 
   if (!analysis) {
   return (
-    <div className="border-t border-gray-100 bg-white">
+    <div className="border-t border-blue-100 bg-white">
       <div className="px-4 sm:px-6 py-8 sm:py-10">
         <div className="text-center max-w-sm mx-auto">
-          <div className="w-12 h-12 mx-auto mb-4 rounded-lg bg-gray-100 flex items-center justify-center">
-            <Sparkles className="w-6 h-6 text-gray-600" />
+          <div className="w-12 h-12 mx-auto mb-4 rounded-lg bg-blue-100 flex items-center justify-center">
+            <Sparkles className="w-6 h-6 text-blue-900" />
           </div>
-          <h3 className="text-base font-semibold text-gray-900 mb-2">
+          <h3 className="text-base font-semibold text-blue-900 mb-2">
             Análise de Criativo
           </h3>
           <p className="text-sm text-gray-600 mb-6 leading-relaxed">
@@ -257,7 +257,7 @@ export default function CreativeAnalysis({ text, segments }: CreativeAnalysisPro
           <button
             onClick={handleAnalyze}
             disabled={isAnalyzing}
-            className="px-6 py-2 bg-gray-900 text-white rounded-lg font-medium text-sm hover:bg-gray-800 transition-colors disabled:opacity-50 inline-flex items-center gap-2"
+            className="px-6 py-2 bg-blue-900 text-white rounded-lg font-medium text-sm hover:bg-blue-800 transition-colors disabled:opacity-50 inline-flex items-center gap-2"
           >
             {isAnalyzing ? (
               <>
@@ -278,11 +278,11 @@ export default function CreativeAnalysis({ text, segments }: CreativeAnalysisPro
   }
 
   return (
-    <div className="border-t border-gray-100 bg-white">
+    <div className="border-t border-blue-100 bg-white">
       <div className="px-4 sm:px-6 py-6 sm:py-8">
         <div className="flex items-center justify-between mb-6 sm:mb-8">
           <div>
-            <h2 className="text-base sm:text-lg font-semibold text-gray-900">
+            <h2 className="text-base sm:text-lg font-semibold text-blue-900">
               Análise do Criativo
             </h2>
             <p className="text-xs text-gray-500 mt-1">Estrutura, scores e sugestões de melhoria</p>
@@ -290,33 +290,33 @@ export default function CreativeAnalysis({ text, segments }: CreativeAnalysisPro
           <div className="flex items-center gap-3">
             <div className="text-right">
               <p className="text-xs text-gray-500 uppercase tracking-wide">Score Geral</p>
-              <p className="text-2xl font-semibold text-gray-900">{analysis.scores?.score_geral || 0}/10</p>
+              <p className="text-2xl font-semibold text-blue-900">{analysis.scores?.score_geral || 0}/10</p>
             </div>
             <button
               onClick={handleAnalyze}
               disabled={isAnalyzing}
-              className="p-2 hover:bg-gray-100 rounded-lg transition-colors"
+              className="p-2 hover:bg-blue-50 rounded-lg transition-colors"
             >
-              {isAnalyzing ? <Loader2 className="w-4 h-4 animate-spin" /> : <Sparkles className="w-4 h-4 text-gray-600" />}
+              {isAnalyzing ? <Loader2 className="w-4 h-4 animate-spin" /> : <Sparkles className="w-4 h-4 text-blue-900" />}
             </button>
           </div>
         </div>
 
         <Tabs defaultValue="estrutura" className="w-full">
-          <TabsList className="w-full flex overflow-x-auto bg-gray-50 p-1 rounded-lg border border-gray-200">
-            <TabsTrigger value="estrutura" className="text-xs sm:text-sm data-[state=active]:bg-white data-[state=active]:text-gray-900 text-gray-600">
+          <TabsList className="w-full flex overflow-x-auto bg-blue-50 p-1 rounded-lg border border-blue-200">
+            <TabsTrigger value="estrutura" className="text-xs sm:text-sm data-[state=active]:bg-white data-[state=active]:text-blue-900 text-gray-600">
               Estrutura
             </TabsTrigger>
-            <TabsTrigger value="scores" className="text-xs sm:text-sm data-[state=active]:bg-white data-[state=active]:text-gray-900 text-gray-600">
+            <TabsTrigger value="scores" className="text-xs sm:text-sm data-[state=active]:bg-white data-[state=active]:text-blue-900 text-gray-600">
               Scores
             </TabsTrigger>
-            <TabsTrigger value="engenharia" className="text-xs sm:text-sm data-[state=active]:bg-white data-[state=active]:text-gray-900 text-gray-600">
+            <TabsTrigger value="engenharia" className="text-xs sm:text-sm data-[state=active]:bg-white data-[state=active]:text-blue-900 text-gray-600">
               Engenharia
             </TabsTrigger>
-            <TabsTrigger value="melhorias" className="text-xs sm:text-sm data-[state=active]:bg-white data-[state=active]:text-gray-900 text-gray-600">
+            <TabsTrigger value="melhorias" className="text-xs sm:text-sm data-[state=active]:bg-white data-[state=active]:text-blue-900 text-gray-600">
               Melhorias
             </TabsTrigger>
-            <TabsTrigger value="variacoes" className="text-xs sm:text-sm data-[state=active]:bg-white data-[state=active]:text-gray-900 text-gray-600">
+            <TabsTrigger value="variacoes" className="text-xs sm:text-sm data-[state=active]:bg-white data-[state=active]:text-blue-900 text-gray-600">
               Variações
             </TabsTrigger>
           </TabsList>

@@ -1,5 +1,5 @@
-import { useState, useRef, useEffect } from "react";
-import { ArrowLeft, Copy, Download, Play, Pause, Volume2, Save, Edit2, Check, X } from "lucide-react";
+import { useState } from "react";
+import { ArrowLeft, Copy, Download, Play, Pause, Volume2, Save, Edit2, Check, X, MoreVertical, Zap } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import {
   Select,
@@ -8,6 +8,12 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
 import { toast } from "sonner";
 import { trpc } from "@/lib/trpc";
 import CreativeAnalysis from "@/components/CreativeAnalysis";
@@ -53,285 +59,143 @@ function SaveButton({ transcription, segments }: any) {
       toast.success("Transcrição salva com sucesso!");
     } catch (error) {
       toast.error("Erro ao salvar transcrição");
+      console.error(error);
     } finally {
       setIsSaving(false);
     }
   };
 
   return (
-    <Button 
-      onClick={handleSave} 
-      size="sm" 
-      className="gap-2 w-full sm:w-auto"
+    <button
+      onClick={handleSave}
       disabled={isSaving}
+      className="px-6 py-2 bg-blue-900 text-white rounded-lg font-medium text-sm hover:bg-blue-800 transition-colors disabled:opacity-50 inline-flex items-center gap-2"
     >
       <Save className="w-4 h-4" />
-      <span className="hidden xs:inline">{isSaving ? "Salvando..." : "Salvar"}</span>
-      <span className="xs:hidden">{isSaving ? "..." : "OK"}</span>
-    </Button>
+      {isSaving ? "Salvando..." : "Salvar"}
+    </button>
   );
 }
 
-function formatTime(seconds: number): string {
-  const hours = Math.floor(seconds / 3600);
-  const minutes = Math.floor((seconds % 3600) / 60);
-  const secs = Math.floor(seconds % 60);
-  const ms = Math.floor((seconds % 1) * 1000);
-
-  if (hours > 0) {
-    return `${hours.toString().padStart(2, "0")}:${minutes.toString().padStart(2, "0")}:${secs.toString().padStart(2, "0")},${ms.toString().padStart(3, "0")}`;
-  }
-  return `${minutes.toString().padStart(2, "0")}:${secs.toString().padStart(2, "0")},${ms.toString().padStart(3, "0")}`;
-}
-
-export default function TranscriptionEditor({
-  transcription,
-  onBack,
-}: TranscriptionEditorProps) {
-  const [segments, setSegments] = useState(transcription.segments);
+export default function TranscriptionEditor({ transcription, onBack }: TranscriptionEditorProps) {
+  const [segments, setSegments] = useState<Segment[]>(transcription.segments);
   const [currentTime, setCurrentTime] = useState(0);
+  const [totalDuration, setTotalDuration] = useState(0);
   const [isPlaying, setIsPlaying] = useState(false);
-  const [exportFormat, setExportFormat] = useState("srt");
+  const [currentSegment, setCurrentSegment] = useState<Segment | null>(null);
   const [editingSegmentId, setEditingSegmentId] = useState<number | null>(null);
   const [editingText, setEditingText] = useState("");
-  const audioRef = useRef<HTMLAudioElement>(null);
-  const [duration, setDuration] = useState(0);
-  const [showFullText, setShowFullText] = useState(false);
+  const audioRef = useState<HTMLAudioElement | null>(null)[0];
 
-  // Usar áudio real do arquivo
-  useEffect(() => {
-    if (transcription.fileUrl && audioRef.current) {
-      audioRef.current.src = transcription.fileUrl;
-      audioRef.current.addEventListener(
-        "loadedmetadata",
-        () => {
-          setDuration(audioRef.current?.duration || 0);
-        },
-        { once: true }
-      );
-    }
-  }, [transcription.fileUrl]);
-
-  // Controlar reprodução
-  useEffect(() => {
-    if (audioRef.current) {
-      if (isPlaying) {
-        audioRef.current.play().catch((err) => console.log("Erro ao reproduzir:", err));
-      } else {
-        audioRef.current.pause();
-      }
-    }
-  }, [isPlaying]);
-
-  // Atualizar tempo durante reprodução
-  useEffect(() => {
-    const audio = audioRef.current;
-    if (!audio) return;
-
-    const updateTime = () => {
-      setCurrentTime(audio.currentTime);
-      if (audio.currentTime >= audio.duration) {
-        setIsPlaying(false);
-      }
-    };
-
-    if (isPlaying) {
-      const interval = setInterval(updateTime, 100);
-      return () => clearInterval(interval);
-    }
-  }, [isPlaying]);
-
-  const totalDuration = duration || (segments.length > 0 ? segments[segments.length - 1].end : 12);
-
-  // Encontrar segmento atual
-  const currentSegment = segments.find(
-    (seg) => currentTime >= seg.start && currentTime < seg.end
-  );
-
-  // Iniciar edição de segmento
-  const startEditSegment = (segment: Segment) => {
-    setEditingSegmentId(segment.id);
-    setEditingText(segment.text);
+  const formatTime = (seconds: number) => {
+    const mins = Math.floor(seconds / 60);
+    const secs = Math.floor(seconds % 60);
+    return `${mins.toString().padStart(2, "0")}:${secs.toString().padStart(2, "0")}`;
   };
 
-  // Salvar edição de segmento
-  const saveSegmentEdit = (segmentId: number) => {
-    setSegments(
-      segments.map((seg) =>
-        seg.id === segmentId ? { ...seg, text: editingText } : seg
-      )
-    );
-    setEditingSegmentId(null);
-    setEditingText("");
-    toast.success("Segmento editado!");
+  const handleCopyParagraph = () => {
+    const text = segments.map((s) => s.text).join(" ");
+    navigator.clipboard.writeText(text);
+    toast.success("Parágrafo copiado!");
   };
 
-  // Cancelar edição
-  const cancelSegmentEdit = () => {
-    setEditingSegmentId(null);
-    setEditingText("");
-  };
-
-  // Deletar segmento
-  const deleteSegment = (segmentId: number) => {
-    setSegments(segments.filter((seg) => seg.id !== segmentId));
-    toast.success("Segmento deletado!");
-  };
-
-  // Exportar transcrição
   const handleExport = () => {
-    let content = "";
-
-    if (exportFormat === "srt") {
-      content = segments
-        .map(
-          (seg, idx) =>
-            `${idx + 1}\n${formatTime(seg.start)} --> ${formatTime(seg.end)}\n${seg.speaker}: ${seg.text}\n`
-        )
-        .join("\n");
-    } else if (exportFormat === "vtt") {
-      content = "WEBVTT\n\n";
-      content += segments
-        .map(
-          (seg) =>
-            `${formatTime(seg.start)} --> ${formatTime(seg.end)}\n${seg.speaker}: ${seg.text}\n`
-        )
-        .join("\n");
-    } else if (exportFormat === "txt") {
-      content = segments.map((seg) => `${seg.speaker}: ${seg.text}`).join("\n\n");
-    } else if (exportFormat === "json") {
-      content = JSON.stringify(segments, null, 2);
-    }
-
+    const text = segments.map((s) => `[${formatTime(s.start)}] ${s.speaker}: ${s.text}`).join("\n\n");
     const element = document.createElement("a");
-    element.setAttribute("href", "data:text/plain;charset=utf-8," + encodeURIComponent(content));
-    element.setAttribute("download", `transcription.${exportFormat === "json" ? "json" : exportFormat}`);
+    element.setAttribute("href", "data:text/plain;charset=utf-8," + encodeURIComponent(text));
+    element.setAttribute("download", `${transcription.fileName}.txt`);
     element.style.display = "none";
     document.body.appendChild(element);
     element.click();
     document.body.removeChild(element);
-
-    toast.success(`Transcrição exportada em ${exportFormat.toUpperCase()}!`);
+    toast.success("Exportado!");
   };
 
-  // Copiar texto completo com quebras de linha
-  const handleCopyFullText = () => {
-    const fullText = segments.map((seg) => `${seg.speaker}: ${seg.text}`).join("\n\n");
-    navigator.clipboard.writeText(fullText);
-    toast.success("Texto copiado para a área de transferência!");
+  const handleEditSegment = (segment: Segment) => {
+    setEditingSegmentId(segment.id);
+    setEditingText(segment.text);
   };
 
-  // Copiar como parágrafo único (sem quebras)
-  const handleCopyAsParagraph = () => {
-    const paragraphText = segments.map((seg) => seg.text).join(" ");
-    navigator.clipboard.writeText(paragraphText);
-    toast.success("Parágrafo único copiado para a área de transferência!");
+  const handleSaveEdit = (segmentId: number) => {
+    setSegments(segments.map((s) => (s.id === segmentId ? { ...s, text: editingText } : s)));
+    setEditingSegmentId(null);
+    toast.success("Segmento atualizado!");
   };
 
-  // Controles de tempo
-  const handleSkip = (seconds: number) => {
-    if (audioRef.current) {
-      audioRef.current.currentTime = Math.max(0, audioRef.current.currentTime + seconds);
-    }
+  const handleDeleteSegment = (segmentId: number) => {
+    setSegments(segments.filter((s) => s.id !== segmentId));
+    toast.success("Segmento removido!");
+  };
+
+  const handleCancelEdit = () => {
+    setEditingSegmentId(null);
+    setEditingText("");
   };
 
   return (
-    <div className="min-h-screen bg-background">
-      {/* Header - Responsivo */}
-      <header className="border-b border-border sticky top-0 z-40 bg-background/95 backdrop-blur">
-        <div className="px-4 sm:px-6 py-3 sm:py-4">
-          <div className="flex items-center justify-between gap-2 sm:gap-4 mb-3 sm:mb-0">
-            <div className="flex items-center gap-2 sm:gap-3 min-w-0 flex-1">
-              <Button variant="ghost" size="icon" onClick={onBack} className="flex-shrink-0">
-                <ArrowLeft className="w-5 h-5" />
-              </Button>
+    <div className="min-h-screen bg-white">
+      <audio ref={audioRef as any} src={transcription.fileUrl} onLoadedMetadata={(e) => setTotalDuration((e.target as HTMLAudioElement).duration)} />
+
+      {/* Header */}
+      <header className="border-b border-blue-100 sticky top-0 z-40 bg-white/95 backdrop-blur-sm">
+        <div className="max-w-5xl mx-auto px-4 sm:px-6 py-4 sm:py-5">
+          <div className="flex items-center justify-between gap-4">
+            <div className="flex items-center gap-3 min-w-0 flex-1">
+              <button
+                onClick={onBack}
+                className="p-2 hover:bg-blue-50 rounded-lg transition-colors"
+                aria-label="Voltar"
+              >
+                <ArrowLeft className="w-5 h-5 text-blue-900" />
+              </button>
               <div className="min-w-0 flex-1">
-                <h1 className="font-semibold text-foreground truncate text-sm sm:text-base">{transcription.fileName}</h1>
-                <p className="text-xs sm:text-sm text-muted-foreground">
+                <h1 className="font-medium text-blue-900 truncate text-sm sm:text-base">
+                  {transcription.fileName}
+                </h1>
+                <p className="text-xs text-gray-500 mt-0.5">
                   {new Date(transcription.createdAt).toLocaleDateString("pt-BR")}
                 </p>
               </div>
             </div>
 
-            {/* Mobile: Compact buttons */}
-            <div className="flex items-center gap-1 sm:gap-2 flex-shrink-0">
-              <Button 
-                variant="ghost" 
-                size="icon" 
-                onClick={handleExport} 
-                className="h-8 w-8 sm:h-10 sm:w-10"
-                title="Exportar"
-              >
-                <Download className="w-4 h-4" />
-              </Button>
+            <div className="flex items-center gap-2">
+              <DropdownMenu>
+                <DropdownMenuTrigger asChild>
+                  <button className="p-2 hover:bg-blue-50 rounded-lg transition-colors">
+                    <MoreVertical className="w-5 h-5 text-blue-900" />
+                  </button>
+                </DropdownMenuTrigger>
+                <DropdownMenuContent align="end">
+                  <DropdownMenuItem onClick={handleCopyParagraph}>
+                    <Copy className="w-4 h-4 mr-2" />
+                    Copiar Parágrafo
+                  </DropdownMenuItem>
+                  <DropdownMenuItem onClick={handleExport}>
+                    <Download className="w-4 h-4 mr-2" />
+                    Exportar
+                  </DropdownMenuItem>
+                </DropdownMenuContent>
+              </DropdownMenu>
             </div>
-          </div>
-
-          {/* Desktop: Full controls */}
-          <div className="hidden sm:flex items-center gap-2 justify-end">
-            <Button variant="outline" size="sm" onClick={handleCopyFullText} className="gap-2">
-              <Copy className="w-4 h-4" />
-              Copiar com Quebras
-            </Button>
-
-            <Button variant="outline" size="sm" onClick={handleCopyAsParagraph} className="gap-2">
-              <Copy className="w-4 h-4" />
-              Parágrafo Único
-            </Button>
-
-            <Select value={exportFormat} onValueChange={setExportFormat}>
-              <SelectTrigger className="w-24">
-                <SelectValue />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="srt">SRT</SelectItem>
-                <SelectItem value="vtt">VTT</SelectItem>
-                <SelectItem value="txt">TXT</SelectItem>
-                <SelectItem value="json">JSON</SelectItem>
-              </SelectContent>
-            </Select>
-
-            <Button onClick={handleExport} size="sm" className="gap-2 bg-primary">
-              <Download className="w-4 h-4" />
-              Exportar
-            </Button>
-
-            <SaveButton transcription={transcription} segments={segments} />
-          </div>
-
-          {/* Mobile: Export format selector and save button */}
-          <div className="sm:hidden flex items-center gap-2 justify-between">
-            <Select value={exportFormat} onValueChange={setExportFormat}>
-              <SelectTrigger className="w-20 text-xs h-8">
-                <SelectValue />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="srt">SRT</SelectItem>
-                <SelectItem value="vtt">VTT</SelectItem>
-                <SelectItem value="txt">TXT</SelectItem>
-                <SelectItem value="json">JSON</SelectItem>
-              </SelectContent>
-            </Select>
-            <SaveButton transcription={transcription} segments={segments} />
           </div>
         </div>
       </header>
 
-      {/* Player - Responsivo */}
-      <div className="border-b border-border bg-muted/30">
-        <div className="px-4 sm:px-6 py-3 sm:py-4">
-          <div className="flex items-center gap-2 sm:gap-4">
-            {/* Play/Pause */}
-            <Button
-              variant="outline"
-              size="icon"
+      {/* Player */}
+      <div className="border-b border-blue-100 bg-blue-50/30">
+        <div className="max-w-5xl mx-auto px-4 sm:px-6 py-4">
+          <div className="flex items-center gap-3">
+            <button
               onClick={() => setIsPlaying(!isPlaying)}
-              className="flex-shrink-0 h-8 w-8 sm:h-10 sm:w-10"
+              className="p-2 hover:bg-white rounded-lg transition-colors"
             >
-              {isPlaying ? <Pause className="w-4 h-4" /> : <Play className="w-4 h-4" />}
-            </Button>
+              {isPlaying ? (
+                <Pause className="w-5 h-5 text-blue-900" />
+              ) : (
+                <Play className="w-5 h-5 text-blue-900" />
+              )}
+            </button>
 
-            {/* Progress bar */}
             <div className="flex-1 min-w-0">
               <input
                 type="range"
@@ -339,178 +203,122 @@ export default function TranscriptionEditor({
                 max={totalDuration}
                 value={currentTime}
                 onChange={(e) => {
-                  if (audioRef.current) {
-                    audioRef.current.currentTime = parseFloat(e.target.value);
+                  const audio = audioRef as any;
+                  if (audio) {
+                    audio.currentTime = parseFloat(e.target.value);
                   }
                 }}
-                className="w-full h-2 bg-muted rounded-lg appearance-none cursor-pointer"
+                className="w-full h-1 bg-gray-200 rounded-full appearance-none cursor-pointer accent-blue-900"
               />
-              <div className="flex items-center justify-between mt-1">
-                <span className="text-xs text-muted-foreground">
-                  {formatTime(currentTime).split(",")[0]}
-                </span>
-                <span className="text-xs text-muted-foreground">
-                  {formatTime(totalDuration).split(",")[0]}
-                </span>
+              <div className="flex items-center justify-between mt-2 text-xs text-gray-500">
+                <span>{formatTime(currentTime)}</span>
+                <span>{formatTime(totalDuration)}</span>
               </div>
             </div>
-
-            {/* Skip buttons */}
-            <div className="flex gap-1 flex-shrink-0">
-              <Button
-                variant="outline"
-                size="icon"
-                onClick={() => handleSkip(-5)}
-                className="h-8 w-8 sm:h-10 sm:w-10 text-xs"
-                title="Voltar 5s"
-              >
-                -5
-              </Button>
-              <Button
-                variant="outline"
-                size="icon"
-                onClick={() => handleSkip(5)}
-                className="h-8 w-8 sm:h-10 sm:w-10 text-xs"
-                title="Avançar 5s"
-              >
-                +5
-              </Button>
-            </div>
           </div>
         </div>
       </div>
 
-      {/* Texto Completo - Responsivo */}
-      <div className="border-b border-border bg-muted/30">
-        <div className="px-4 sm:px-6 py-4 sm:py-6">
-          <div className="flex items-center justify-between mb-3 gap-2">
-            <h2 className="font-semibold text-sm sm:text-base text-foreground">Transcrição Completa</h2>
-            <Button 
-              size="sm" 
-              variant="outline" 
-              onClick={() => setShowFullText(!showFullText)}
-              className="text-xs"
-            >
-              {showFullText ? "Ocultar" : "Mostrar"}
-            </Button>
-          </div>
-          {showFullText && (
-            <div className="bg-background p-3 sm:p-4 rounded-lg border border-border max-h-48 overflow-y-auto">
-              <p className="text-xs sm:text-sm leading-relaxed whitespace-pre-wrap">
-                {segments.map((seg) => `${seg.speaker}: ${seg.text}`).join("\n\n")}
-              </p>
-            </div>
-          )}
-        </div>
-      </div>
+      {/* Content */}
+      <main className="max-w-5xl mx-auto px-4 sm:px-6 py-8 sm:py-12">
+        {/* Segmentos */}
+        <div className="mb-12">
+          <h2 className="text-sm font-semibold text-blue-900 mb-6 uppercase tracking-wide">
+            Transcrição
+          </h2>
 
-      {/* Segmentos - Responsivo */}
-      <div className="px-4 sm:px-6 py-4 sm:py-6">
-        <h2 className="font-semibold text-sm sm:text-base text-foreground mb-3 sm:mb-4">Segmentos</h2>
-        <div className="space-y-2 sm:space-y-3">
-          {segments.length === 0 ? (
-            <div className="text-center py-8 text-muted-foreground text-sm">
-              Nenhum segmento disponível
-            </div>
-          ) : (
-            segments.map((segment) => (
-              <div
-                key={segment.id}
-                className={`p-3 sm:p-4 rounded-lg border transition-colors cursor-pointer ${
-                  currentSegment?.id === segment.id
-                    ? "border-primary bg-primary/5"
-                    : "border-border hover:border-primary/50"
-                }`}
-                onClick={() => {
-                  if (audioRef.current) {
-                    audioRef.current.currentTime = segment.start;
-                  }
-                }}
-              >
-                <div className="flex items-start justify-between gap-2 sm:gap-4">
-                  <div className="flex-1 min-w-0">
-                    <div className="flex items-center gap-1 sm:gap-2 mb-2 flex-wrap">
-                      <span className="text-xs sm:text-sm font-medium text-primary">
-                        {formatTime(segment.start)}
-                      </span>
-                      <span className="text-xs text-muted-foreground">→</span>
-                      <span className="text-xs sm:text-sm font-medium text-primary">
-                        {formatTime(segment.end)}
-                      </span>
-                      <span className="text-xs px-2 py-1 bg-accent/20 rounded text-accent-foreground">
-                        {segment.speaker}
-                      </span>
-                    </div>
-
-                    {editingSegmentId === segment.id ? (
+          <div className="space-y-3">
+            {segments.length === 0 ? (
+              <div className="text-center py-12 text-gray-500 text-sm">
+                Nenhum segmento disponível
+              </div>
+            ) : (
+              segments.map((segment) => (
+                <div
+                  key={segment.id}
+                  className={`p-4 rounded-lg border transition-all cursor-pointer ${
+                    currentSegment?.id === segment.id
+                      ? "border-blue-900 bg-blue-50"
+                      : "border-gray-200 hover:border-blue-200 bg-white"
+                  }`}
+                  onClick={() => setCurrentSegment(segment)}
+                >
+                  {editingSegmentId === segment.id ? (
+                    <div className="space-y-3">
                       <textarea
                         value={editingText}
                         onChange={(e) => setEditingText(e.target.value)}
-                        className="w-full p-2 border border-border rounded bg-background text-foreground text-xs sm:text-sm"
-                        rows={2}
-                        autoFocus
+                        className="w-full p-3 border border-blue-200 rounded-lg bg-white text-sm focus:outline-none focus:ring-2 focus:ring-blue-900"
+                        rows={3}
                       />
-                    ) : (
-                      <p className="text-xs sm:text-sm text-foreground break-words">{segment.text}</p>
-                    )}
-                  </div>
-
-                  <div className="flex gap-1 flex-shrink-0">
-                    {editingSegmentId === segment.id ? (
-                      <>
-                        <Button
-                          size="sm"
-                          variant="outline"
-                          onClick={() => saveSegmentEdit(segment.id)}
-                          className="h-8 w-8 p-0"
+                      <div className="flex gap-2">
+                        <button
+                          onClick={() => handleSaveEdit(segment.id)}
+                          className="flex items-center gap-1 px-3 py-1 bg-blue-900 text-white rounded text-xs hover:bg-blue-800"
                         >
-                          <Check className="w-4 h-4" />
-                        </Button>
-                        <Button
-                          size="sm"
-                          variant="outline"
-                          onClick={cancelSegmentEdit}
-                          className="h-8 w-8 p-0"
+                          <Check className="w-3 h-3" />
+                          Salvar
+                        </button>
+                        <button
+                          onClick={handleCancelEdit}
+                          className="flex items-center gap-1 px-3 py-1 bg-gray-200 text-gray-900 rounded text-xs hover:bg-gray-300"
                         >
-                          <X className="w-4 h-4" />
-                        </Button>
-                      </>
-                    ) : (
-                      <>
-                        <Button
-                          size="sm"
-                          variant="outline"
-                          onClick={() => startEditSegment(segment)}
-                          className="h-8 w-8 p-0"
+                          <X className="w-3 h-3" />
+                          Cancelar
+                        </button>
+                      </div>
+                    </div>
+                  ) : (
+                    <>
+                      <div className="flex items-center gap-2 mb-2">
+                        <span className="text-xs font-medium text-gray-500">
+                          {formatTime(segment.start)}
+                        </span>
+                        <span className="text-xs px-2 py-1 bg-blue-100 rounded text-blue-900 font-medium">
+                          {segment.speaker}
+                        </span>
+                      </div>
+                      <p className="text-sm text-gray-900 mb-3">{segment.text}</p>
+                      <div className="flex gap-2">
+                        <button
+                          onClick={() => handleEditSegment(segment)}
+                          className="flex items-center gap-1 px-2 py-1 text-xs text-blue-900 hover:bg-blue-50 rounded"
                         >
-                          <Edit2 className="w-4 h-4" />
-                        </Button>
-                        <Button
-                          size="sm"
-                          variant="outline"
-                          onClick={() => deleteSegment(segment.id)}
-                          className="h-8 w-8 p-0 text-destructive hover:text-destructive"
+                          <Edit2 className="w-3 h-3" />
+                          Editar
+                        </button>
+                        <button
+                          onClick={() => handleDeleteSegment(segment.id)}
+                          className="flex items-center gap-1 px-2 py-1 text-xs text-red-600 hover:bg-red-50 rounded"
                         >
-                          <X className="w-4 h-4" />
-                        </Button>
-                      </>
-                    )}
-                  </div>
+                          <X className="w-3 h-3" />
+                          Deletar
+                        </button>
+                      </div>
+                    </>
+                  )}
                 </div>
-              </div>
-            ))
-          )}
+              ))
+            )}
+          </div>
         </div>
-      </div>
 
-      {/* Análise de Criativo com IA */}
-      <CreativeAnalysis
-        text={segments.map((seg) => seg.text).join(" ")}
-        segments={segments}
-      />
+        {/* Botão Salvar */}
+        <div className="flex justify-end mb-12">
+          <SaveButton transcription={transcription} segments={segments} />
+        </div>
 
-      {/* Audio element */}
-      <audio ref={audioRef} />
+        {/* Análise de Criativo */}
+        <div className="border-t border-blue-100 pt-12">
+          <div className="flex items-center gap-2 mb-6">
+            <Zap className="w-5 h-5 text-blue-900" />
+            <h2 className="text-sm font-semibold text-blue-900 uppercase tracking-wide">
+              Análise de Criativo
+            </h2>
+          </div>
+          <CreativeAnalysis text={transcription.text} segments={segments} />
+        </div>
+      </main>
     </div>
   );
 }
