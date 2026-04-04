@@ -1,9 +1,9 @@
 import { protectedProcedure } from "../_core/trpc";
 import { z } from "zod";
-import { invokeLLM } from "../_core/llm";
+import { Groq } from "groq-sdk";
 
 /**
- * Analisador de Criativos de Alta Performance
+ * Analisador de Criativos com Groq Llama 3.1 70B
  * 
  * Recebe a transcrição de um criativo (anúncio em vídeo) e retorna:
  * 1. Classificação estrutural (Hook, Contexto, Problema, Agitação, Insight, Solução, Prova, CTA)
@@ -11,6 +11,10 @@ import { invokeLLM } from "../_core/llm";
  * 3. Engenharia reversa (big idea, mecanismo único, emoção, público)
  * 4. Sugestões de melhoria e otimização
  */
+
+const groq = new Groq({
+  apiKey: process.env.GROQ_API_KEY,
+});
 
 const CREATIVE_ANALYSIS_PROMPT = `Você é um analista sênior de criativos de resposta direta, especializado em Meta Ads e Google Ads. Sua função é fazer engenharia reversa de criativos em vídeo a partir da transcrição.
 
@@ -88,7 +92,7 @@ Analise a transcrição e responda APENAS com um JSON válido (sem markdown, sem
 
 export const creativeAnalyzerRouter = {
   /**
-   * Análise completa de criativo
+   * Análise completa de criativo com Groq Llama 3.1 70B
    * Recebe transcrição e retorna estrutura + análise + melhorias
    */
   analyzeCreative: protectedProcedure
@@ -123,7 +127,8 @@ export const creativeAnalyzerRouter = {
           transcriptionWithTimestamps = input.text;
         }
 
-        const response = await invokeLLM({
+        const response = await groq.chat.completions.create({
+          model: "llama-3.1-70b-versatile",
           messages: [
             {
               role: "system",
@@ -134,9 +139,11 @@ export const creativeAnalyzerRouter = {
               content: `Analise este criativo:\n\n${transcriptionWithTimestamps}`,
             },
           ],
+          temperature: 0.7,
+          max_tokens: 2000,
         });
 
-        const rawContent = (response.choices[0]?.message?.content as string) || "{}";
+        const rawContent = response.choices[0]?.message?.content || "{}";
         
         // Limpar possíveis markdown fences
         const cleanJson = rawContent
@@ -161,7 +168,6 @@ export const creativeAnalyzerRouter = {
                 analysis,
               };
             } catch {
-              // Se mesmo assim falhar, retornar o texto bruto
               return {
                 success: false,
                 error: "Erro ao processar análise. A IA retornou formato inválido.",
@@ -186,7 +192,7 @@ export const creativeAnalyzerRouter = {
     }),
 
   /**
-   * Gerar novas versões do criativo baseado na análise
+   * Gerar novas versões do criativo baseado na análise com Groq
    */
   generateVariations: protectedProcedure
     .input(
@@ -206,7 +212,8 @@ export const creativeAnalyzerRouter = {
           emocional: "Mantenha a estrutura mas aumente a intensidade emocional em cada bloco.",
         };
 
-        const response = await invokeLLM({
+        const response = await groq.chat.completions.create({
+          model: "llama-3.1-70b-versatile",
           messages: [
             {
               role: "system",
@@ -233,9 +240,11 @@ Responda APENAS com JSON válido no formato:
               content: `Criativo original:\n${input.originalText}\n\nAnálise do criativo:\n${input.analysisJson}`,
             },
           ],
+          temperature: 0.8,
+          max_tokens: 2000,
         });
 
-        const rawContent = (response.choices[0]?.message?.content as string) || "{}";
+        const rawContent = response.choices[0]?.message?.content || "{}";
         const cleanJson = rawContent.replace(/```json\s*/g, "").replace(/```\s*/g, "").trim();
 
         try {
@@ -256,13 +265,16 @@ Responda APENAS com JSON válido no formato:
             } catch {
               return {
                 success: false,
-                error: "Erro ao gerar variações.",
+                error: "Erro ao processar variações.",
+                rawResponse: rawContent,
               };
             }
           }
+          
           return {
             success: false,
             error: "Erro ao gerar variações do criativo.",
+            rawResponse: rawContent,
           };
         }
       } catch (error) {
