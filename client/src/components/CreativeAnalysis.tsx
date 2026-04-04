@@ -96,15 +96,15 @@ interface GeneratedVariation {
 }
 
 const BLOCK_CONFIG: Record<string, { color: string; bg: string; icon: React.ReactNode; label: string }> = {
-  hook: { color: "text-red-500", bg: "bg-red-500/10 border-red-500/30", icon: <Zap className="w-4 h-4" />, label: "Hook" },
-  contexto: { color: "text-blue-500", bg: "bg-blue-500/10 border-blue-500/30", icon: <Eye className="w-4 h-4" />, label: "Contexto" },
-  problema: { color: "text-orange-500", bg: "bg-orange-500/10 border-orange-500/30", icon: <AlertTriangle className="w-4 h-4" />, label: "Problema" },
-  agitacao: { color: "text-amber-500", bg: "bg-amber-500/10 border-amber-500/30", icon: <TrendingUp className="w-4 h-4" />, label: "Agitação" },
-  insight: { color: "text-purple-500", bg: "bg-purple-500/10 border-purple-500/30", icon: <Lightbulb className="w-4 h-4" />, label: "Insight" },
-  solucao: { color: "text-green-500", bg: "bg-green-500/10 border-green-500/30", icon: <Target className="w-4 h-4" />, label: "Solução" },
-  prova: { color: "text-cyan-500", bg: "bg-cyan-500/10 border-cyan-500/30", icon: <BarChart3 className="w-4 h-4" />, label: "Prova" },
-  cta: { color: "text-pink-500", bg: "bg-pink-500/10 border-pink-500/30", icon: <MessageSquare className="w-4 h-4" />, label: "CTA" },
-  micro_hook: { color: "text-yellow-500", bg: "bg-yellow-500/10 border-yellow-500/30", icon: <Zap className="w-3 h-3" />, label: "Micro-Hook" },
+  hook: { color: "text-gray-900", bg: "bg-gray-50 border-gray-200", icon: <Zap className="w-4 h-4" />, label: "Hook" },
+  contexto: { color: "text-gray-900", bg: "bg-gray-50 border-gray-200", icon: <Eye className="w-4 h-4" />, label: "Contexto" },
+  problema: { color: "text-gray-900", bg: "bg-gray-50 border-gray-200", icon: <AlertTriangle className="w-4 h-4" />, label: "Problema" },
+  agitacao: { color: "text-gray-900", bg: "bg-gray-50 border-gray-200", icon: <TrendingUp className="w-4 h-4" />, label: "Agitação" },
+  insight: { color: "text-gray-900", bg: "bg-gray-50 border-gray-200", icon: <Lightbulb className="w-4 h-4" />, label: "Insight" },
+  solucao: { color: "text-gray-900", bg: "bg-gray-50 border-gray-200", icon: <Target className="w-4 h-4" />, label: "Solução" },
+  prova: { color: "text-gray-900", bg: "bg-gray-50 border-gray-200", icon: <BarChart3 className="w-4 h-4" />, label: "Prova" },
+  cta: { color: "text-gray-900", bg: "bg-gray-50 border-gray-200", icon: <MessageSquare className="w-4 h-4" />, label: "CTA" },
+  micro_hook: { color: "text-gray-900", bg: "bg-gray-50 border-gray-200", icon: <Zap className="w-3 h-3" />, label: "Micro-Hook" },
 };
 
 function ScoreBar({ label, score, max = 10 }: { label: string; score: number; max?: number }) {
@@ -241,89 +241,82 @@ export default function CreativeAnalysis({ text, segments }: CreativeAnalysisPro
   };
 
   if (!analysis) {
-    return (
-      <div className="border-t border-border bg-muted/30">
-        <div className="px-4 sm:px-6 py-6 sm:py-8">
-          <div className="text-center max-w-md mx-auto">
-            <div className="w-16 h-16 mx-auto mb-4 rounded-2xl bg-gradient-to-br from-primary/20 to-accent/20 flex items-center justify-center">
-              <Brain className="w-8 h-8 text-primary" />
-            </div>
-            <h3 className="text-lg font-semibold text-foreground mb-2">
-              Análise de Criativo
-            </h3>
-            <p className="text-sm text-muted-foreground mb-6">
-              A IA vai destrinchar a estrutura do criativo, identificar cada bloco
-              (Hook, Problema, Agitação, CTA...), dar score por dimensão, e sugerir
-              melhorias concretas.
-            </p>
-            <Button
-              onClick={handleAnalyze}
-              disabled={isAnalyzing}
-              className="gap-2"
-              size="lg"
-            >
-              {isAnalyzing ? (
-                <>
-                  <Loader2 className="w-4 h-4 animate-spin" />
-                  Analisando criativo...
-                </>
-              ) : (
-                <>
-                  <Sparkles className="w-4 h-4" />
-                  Analisar Criativo
-                </>
-              )}
-            </Button>
+  return (
+    <div className="border-t border-gray-100 bg-white">
+      <div className="px-4 sm:px-6 py-8 sm:py-10">
+        <div className="text-center max-w-sm mx-auto">
+          <div className="w-12 h-12 mx-auto mb-4 rounded-lg bg-gray-100 flex items-center justify-center">
+            <Sparkles className="w-6 h-6 text-gray-600" />
           </div>
+          <h3 className="text-base font-semibold text-gray-900 mb-2">
+            Análise de Criativo
+          </h3>
+          <p className="text-sm text-gray-600 mb-6 leading-relaxed">
+            A IA vai analisar a estrutura do seu criativo, identificar cada bloco (Hook, Problema, CTA...), dar scores e sugerir melhorias.
+          </p>
+          <button
+            onClick={handleAnalyze}
+            disabled={isAnalyzing}
+            className="px-6 py-2 bg-gray-900 text-white rounded-lg font-medium text-sm hover:bg-gray-800 transition-colors disabled:opacity-50 inline-flex items-center gap-2"
+          >
+            {isAnalyzing ? (
+              <>
+                <Loader2 className="w-4 h-4 animate-spin" />
+                Analisando...
+              </>
+            ) : (
+              <>
+                <Sparkles className="w-4 h-4" />
+                Analisar Criativo
+              </>
+            )}
+          </button>
         </div>
       </div>
-    );
+    </div>
+  );
   }
 
   return (
-    <div className="border-t border-border">
-      <div className="px-4 sm:px-6 py-4 sm:py-6">
-        <div className="flex items-center justify-between mb-4 sm:mb-6">
-          <div className="flex items-center gap-2">
-            <Brain className="w-5 h-5 text-primary" />
-            <h2 className="text-base sm:text-lg font-bold text-foreground">
+    <div className="border-t border-gray-100 bg-white">
+      <div className="px-4 sm:px-6 py-6 sm:py-8">
+        <div className="flex items-center justify-between mb-6 sm:mb-8">
+          <div>
+            <h2 className="text-base sm:text-lg font-semibold text-gray-900">
               Análise do Criativo
             </h2>
+            <p className="text-xs text-gray-500 mt-1">Estrutura, scores e sugestões de melhoria</p>
           </div>
-          <div className="flex items-center gap-2">
-            <div className="flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-primary/10">
-              <span className="text-xs text-muted-foreground">Score Geral</span>
-              <span className="text-sm font-bold text-primary">
-                {analysis.scores?.score_geral || 0}/10
-              </span>
+          <div className="flex items-center gap-3">
+            <div className="text-right">
+              <p className="text-xs text-gray-500 uppercase tracking-wide">Score Geral</p>
+              <p className="text-2xl font-semibold text-gray-900">{analysis.scores?.score_geral || 0}/10</p>
             </div>
-            <Button
-              variant="outline"
-              size="sm"
+            <button
               onClick={handleAnalyze}
               disabled={isAnalyzing}
-              className="text-xs"
+              className="p-2 hover:bg-gray-100 rounded-lg transition-colors"
             >
-              {isAnalyzing ? <Loader2 className="w-3 h-3 animate-spin" /> : "Reanalisar"}
-            </Button>
+              {isAnalyzing ? <Loader2 className="w-4 h-4 animate-spin" /> : <Sparkles className="w-4 h-4 text-gray-600" />}
+            </button>
           </div>
         </div>
 
         <Tabs defaultValue="estrutura" className="w-full">
-          <TabsList className="w-full flex overflow-x-auto">
-            <TabsTrigger value="estrutura" className="text-xs sm:text-sm">
+          <TabsList className="w-full flex overflow-x-auto bg-gray-50 p-1 rounded-lg border border-gray-200">
+            <TabsTrigger value="estrutura" className="text-xs sm:text-sm data-[state=active]:bg-white data-[state=active]:text-gray-900 text-gray-600">
               Estrutura
             </TabsTrigger>
-            <TabsTrigger value="scores" className="text-xs sm:text-sm">
+            <TabsTrigger value="scores" className="text-xs sm:text-sm data-[state=active]:bg-white data-[state=active]:text-gray-900 text-gray-600">
               Scores
             </TabsTrigger>
-            <TabsTrigger value="engenharia" className="text-xs sm:text-sm">
+            <TabsTrigger value="engenharia" className="text-xs sm:text-sm data-[state=active]:bg-white data-[state=active]:text-gray-900 text-gray-600">
               Engenharia
             </TabsTrigger>
-            <TabsTrigger value="melhorias" className="text-xs sm:text-sm">
+            <TabsTrigger value="melhorias" className="text-xs sm:text-sm data-[state=active]:bg-white data-[state=active]:text-gray-900 text-gray-600">
               Melhorias
             </TabsTrigger>
-            <TabsTrigger value="variacoes" className="text-xs sm:text-sm">
+            <TabsTrigger value="variacoes" className="text-xs sm:text-sm data-[state=active]:bg-white data-[state=active]:text-gray-900 text-gray-600">
               Variações
             </TabsTrigger>
           </TabsList>
