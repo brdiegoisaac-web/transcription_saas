@@ -257,10 +257,3 @@ Quer que eu comece pela **FASE 1**?
 
 ### Bugs Encontrados
 - [x] Erro ao analisar criativo - CORRIGIDO: usar tRPC em vez de fetch direto
-
-
-## 🎫 REDESIGN MINIMALISTA (Prioridade Alta)
-- [x] Redesenhar TranscriptionEditor com visual minimalista
-- [x] Redesenhar CreativeAnalysis com visual minimalista
-- [x] Otimizar paleta de cores e tipografia (cores neutras, tipografia clara)
-- [x] Testar responsividade e usabilidade
