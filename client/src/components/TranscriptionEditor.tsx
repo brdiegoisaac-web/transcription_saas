@@ -1,5 +1,5 @@
 import { useState, useRef, useEffect } from "react";
-import { ArrowLeft, Copy, Download, Play, Pause, Volume2, Save, Edit2, Check, X } from "lucide-react";
+import { ArrowLeft, Copy, Download, Play, Pause, MoreVertical, Zap } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import {
   Select,
@@ -8,6 +8,12 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
 import { toast } from "sonner";
 import { trpc } from "@/lib/trpc";
 import CreativeAnalysis from "@/components/CreativeAnalysis";
@@ -32,56 +38,15 @@ interface TranscriptionEditorProps {
   onBack: () => void;
 }
 
-function SaveButton({ transcription, segments }: any) {
-  const saveMutation = trpc.history.save.useMutation();
-  const [isSaving, setIsSaving] = useState(false);
-
-  const handleSave = async () => {
-    setIsSaving(true);
-    try {
-      const fullText = segments.map((seg: any) => `${seg.speaker}: ${seg.text}`).join("\n\n");
-      
-      await saveMutation.mutateAsync({
-        fileName: transcription.fileName,
-        originalText: fullText,
-        segments: segments,
-        duration: segments.length > 0 ? segments[segments.length - 1].end : 0,
-        inputLanguage: "pt",
-        outputLanguage: "pt",
-      });
-      
-      toast.success("Transcrição salva com sucesso!");
-    } catch (error) {
-      toast.error("Erro ao salvar transcrição");
-    } finally {
-      setIsSaving(false);
-    }
-  };
-
-  return (
-    <Button 
-      onClick={handleSave} 
-      size="sm" 
-      className="gap-2 w-full sm:w-auto"
-      disabled={isSaving}
-    >
-      <Save className="w-4 h-4" />
-      <span className="hidden xs:inline">{isSaving ? "Salvando..." : "Salvar"}</span>
-      <span className="xs:hidden">{isSaving ? "..." : "OK"}</span>
-    </Button>
-  );
-}
-
 function formatTime(seconds: number): string {
   const hours = Math.floor(seconds / 3600);
   const minutes = Math.floor((seconds % 3600) / 60);
   const secs = Math.floor(seconds % 60);
-  const ms = Math.floor((seconds % 1) * 1000);
 
   if (hours > 0) {
-    return `${hours.toString().padStart(2, "0")}:${minutes.toString().padStart(2, "0")}:${secs.toString().padStart(2, "0")},${ms.toString().padStart(3, "0")}`;
+    return `${hours}:${minutes.toString().padStart(2, "0")}:${secs.toString().padStart(2, "0")}`;
   }
-  return `${minutes.toString().padStart(2, "0")}:${secs.toString().padStart(2, "0")},${ms.toString().padStart(3, "0")}`;
+  return `${minutes}:${secs.toString().padStart(2, "0")}`;
 }
 
 export default function TranscriptionEditor({
@@ -96,9 +61,7 @@ export default function TranscriptionEditor({
   const [editingText, setEditingText] = useState("");
   const audioRef = useRef<HTMLAudioElement>(null);
   const [duration, setDuration] = useState(0);
-  const [showFullText, setShowFullText] = useState(false);
 
-  // Usar áudio real do arquivo
   useEffect(() => {
     if (transcription.fileUrl && audioRef.current) {
       audioRef.current.src = transcription.fileUrl;
@@ -112,18 +75,16 @@ export default function TranscriptionEditor({
     }
   }, [transcription.fileUrl]);
 
-  // Controlar reprodução
   useEffect(() => {
     if (audioRef.current) {
       if (isPlaying) {
-        audioRef.current.play().catch((err) => console.log("Erro ao reproduzir:", err));
+        audioRef.current.play().catch(() => {});
       } else {
         audioRef.current.pause();
       }
     }
   }, [isPlaying]);
 
-  // Atualizar tempo durante reprodução
   useEffect(() => {
     const audio = audioRef.current;
     if (!audio) return;
@@ -141,20 +102,16 @@ export default function TranscriptionEditor({
     }
   }, [isPlaying]);
 
-  const totalDuration = duration || (segments.length > 0 ? segments[segments.length - 1].end : 12);
-
-  // Encontrar segmento atual
+  const totalDuration = duration || (segments.length > 0 ? segments[segments.length - 1].end : 0);
   const currentSegment = segments.find(
     (seg) => currentTime >= seg.start && currentTime < seg.end
   );
 
-  // Iniciar edição de segmento
   const startEditSegment = (segment: Segment) => {
     setEditingSegmentId(segment.id);
     setEditingText(segment.text);
   };
 
-  // Salvar edição de segmento
   const saveSegmentEdit = (segmentId: number) => {
     setSegments(
       segments.map((seg) =>
@@ -163,22 +120,14 @@ export default function TranscriptionEditor({
     );
     setEditingSegmentId(null);
     setEditingText("");
-    toast.success("Segmento editado!");
+    toast.success("Segmento atualizado");
   };
 
-  // Cancelar edição
-  const cancelSegmentEdit = () => {
-    setEditingSegmentId(null);
-    setEditingText("");
-  };
-
-  // Deletar segmento
   const deleteSegment = (segmentId: number) => {
     setSegments(segments.filter((seg) => seg.id !== segmentId));
-    toast.success("Segmento deletado!");
+    toast.success("Segmento removido");
   };
 
-  // Exportar transcrição
   const handleExport = () => {
     let content = "";
 
@@ -211,127 +160,124 @@ export default function TranscriptionEditor({
     element.click();
     document.body.removeChild(element);
 
-    toast.success(`Transcrição exportada em ${exportFormat.toUpperCase()}!`);
+    toast.success(`Exportado como ${exportFormat.toUpperCase()}`);
   };
 
-  // Copiar texto completo com quebras de linha
   const handleCopyFullText = () => {
     const fullText = segments.map((seg) => `${seg.speaker}: ${seg.text}`).join("\n\n");
     navigator.clipboard.writeText(fullText);
-    toast.success("Texto copiado para a área de transferência!");
+    toast.success("Copiado para área de transferência");
   };
 
-  // Copiar como parágrafo único (sem quebras)
   const handleCopyAsParagraph = () => {
     const paragraphText = segments.map((seg) => seg.text).join(" ");
     navigator.clipboard.writeText(paragraphText);
-    toast.success("Parágrafo único copiado para a área de transferência!");
+    toast.success("Parágrafo copiado");
   };
 
-  // Controles de tempo
-  const handleSkip = (seconds: number) => {
-    if (audioRef.current) {
-      audioRef.current.currentTime = Math.max(0, audioRef.current.currentTime + seconds);
+  const saveMutation = trpc.history.save.useMutation();
+
+  const handleSave = async () => {
+    try {
+      const fullText = segments.map((seg) => `${seg.speaker}: ${seg.text}`).join("\n\n");
+      
+      await saveMutation.mutateAsync({
+        fileName: transcription.fileName,
+        originalText: fullText,
+        segments: segments,
+        duration: totalDuration,
+        inputLanguage: "pt",
+        outputLanguage: "pt",
+      });
+      
+      toast.success("Transcrição salva");
+    } catch (error) {
+      toast.error("Erro ao salvar");
     }
   };
 
   return (
-    <div className="min-h-screen bg-background">
-      {/* Header - Responsivo */}
-      <header className="border-b border-border sticky top-0 z-40 bg-background/95 backdrop-blur">
-        <div className="px-4 sm:px-6 py-3 sm:py-4">
-          <div className="flex items-center justify-between gap-2 sm:gap-4 mb-3 sm:mb-0">
-            <div className="flex items-center gap-2 sm:gap-3 min-w-0 flex-1">
-              <Button variant="ghost" size="icon" onClick={onBack} className="flex-shrink-0">
-                <ArrowLeft className="w-5 h-5" />
-              </Button>
+    <div className="min-h-screen bg-white">
+      {/* Header Minimalista */}
+      <header className="border-b border-gray-100 sticky top-0 z-40 bg-white/95 backdrop-blur-sm">
+        <div className="max-w-5xl mx-auto px-4 sm:px-6 py-4 sm:py-5">
+          <div className="flex items-center justify-between gap-4">
+            <div className="flex items-center gap-3 min-w-0 flex-1">
+              <button
+                onClick={onBack}
+                className="p-2 hover:bg-gray-50 rounded-lg transition-colors"
+                aria-label="Voltar"
+              >
+                <ArrowLeft className="w-5 h-5 text-gray-600" />
+              </button>
               <div className="min-w-0 flex-1">
-                <h1 className="font-semibold text-foreground truncate text-sm sm:text-base">{transcription.fileName}</h1>
-                <p className="text-xs sm:text-sm text-muted-foreground">
+                <h1 className="font-medium text-gray-900 truncate text-sm sm:text-base">
+                  {transcription.fileName}
+                </h1>
+                <p className="text-xs text-gray-500 mt-0.5">
                   {new Date(transcription.createdAt).toLocaleDateString("pt-BR")}
                 </p>
               </div>
             </div>
 
-            {/* Mobile: Compact buttons */}
-            <div className="flex items-center gap-1 sm:gap-2 flex-shrink-0">
-              <Button 
-                variant="ghost" 
-                size="icon" 
-                onClick={handleExport} 
-                className="h-8 w-8 sm:h-10 sm:w-10"
-                title="Exportar"
+            <div className="flex items-center gap-2">
+              <DropdownMenu>
+                <DropdownMenuTrigger asChild>
+                  <button className="p-2 hover:bg-gray-50 rounded-lg transition-colors">
+                    <MoreVertical className="w-5 h-5 text-gray-600" />
+                  </button>
+                </DropdownMenuTrigger>
+                <DropdownMenuContent align="end" className="w-48">
+                  <DropdownMenuItem onClick={handleCopyFullText}>
+                    <Copy className="w-4 h-4 mr-2" />
+                    Copiar com quebras
+                  </DropdownMenuItem>
+                  <DropdownMenuItem onClick={handleCopyAsParagraph}>
+                    <Copy className="w-4 h-4 mr-2" />
+                    Copiar parágrafo único
+                  </DropdownMenuItem>
+                </DropdownMenuContent>
+              </DropdownMenu>
+
+              <Select value={exportFormat} onValueChange={setExportFormat}>
+                <SelectTrigger className="w-20 border-gray-200">
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="srt">SRT</SelectItem>
+                  <SelectItem value="vtt">VTT</SelectItem>
+                  <SelectItem value="txt">TXT</SelectItem>
+                  <SelectItem value="json">JSON</SelectItem>
+                </SelectContent>
+              </Select>
+
+              <button
+                onClick={handleExport}
+                className="p-2 hover:bg-gray-50 rounded-lg transition-colors"
+                aria-label="Exportar"
               >
-                <Download className="w-4 h-4" />
-              </Button>
+                <Download className="w-5 h-5 text-gray-600" />
+              </button>
             </div>
-          </div>
-
-          {/* Desktop: Full controls */}
-          <div className="hidden sm:flex items-center gap-2 justify-end">
-            <Button variant="outline" size="sm" onClick={handleCopyFullText} className="gap-2">
-              <Copy className="w-4 h-4" />
-              Copiar com Quebras
-            </Button>
-
-            <Button variant="outline" size="sm" onClick={handleCopyAsParagraph} className="gap-2">
-              <Copy className="w-4 h-4" />
-              Parágrafo Único
-            </Button>
-
-            <Select value={exportFormat} onValueChange={setExportFormat}>
-              <SelectTrigger className="w-24">
-                <SelectValue />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="srt">SRT</SelectItem>
-                <SelectItem value="vtt">VTT</SelectItem>
-                <SelectItem value="txt">TXT</SelectItem>
-                <SelectItem value="json">JSON</SelectItem>
-              </SelectContent>
-            </Select>
-
-            <Button onClick={handleExport} size="sm" className="gap-2 bg-primary">
-              <Download className="w-4 h-4" />
-              Exportar
-            </Button>
-
-            <SaveButton transcription={transcription} segments={segments} />
-          </div>
-
-          {/* Mobile: Export format selector and save button */}
-          <div className="sm:hidden flex items-center gap-2 justify-between">
-            <Select value={exportFormat} onValueChange={setExportFormat}>
-              <SelectTrigger className="w-20 text-xs h-8">
-                <SelectValue />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="srt">SRT</SelectItem>
-                <SelectItem value="vtt">VTT</SelectItem>
-                <SelectItem value="txt">TXT</SelectItem>
-                <SelectItem value="json">JSON</SelectItem>
-              </SelectContent>
-            </Select>
-            <SaveButton transcription={transcription} segments={segments} />
           </div>
         </div>
       </header>
 
-      {/* Player - Responsivo */}
-      <div className="border-b border-border bg-muted/30">
-        <div className="px-4 sm:px-6 py-3 sm:py-4">
-          <div className="flex items-center gap-2 sm:gap-4">
-            {/* Play/Pause */}
-            <Button
-              variant="outline"
-              size="icon"
+      {/* Player Minimalista */}
+      <div className="border-b border-gray-100 bg-gray-50/50">
+        <div className="max-w-5xl mx-auto px-4 sm:px-6 py-4">
+          <div className="flex items-center gap-3">
+            <button
               onClick={() => setIsPlaying(!isPlaying)}
-              className="flex-shrink-0 h-8 w-8 sm:h-10 sm:w-10"
+              className="p-2 hover:bg-white rounded-lg transition-colors"
             >
-              {isPlaying ? <Pause className="w-4 h-4" /> : <Play className="w-4 h-4" />}
-            </Button>
+              {isPlaying ? (
+                <Pause className="w-5 h-5 text-gray-900" />
+              ) : (
+                <Play className="w-5 h-5 text-gray-900" />
+              )}
+            </button>
 
-            {/* Progress bar */}
             <div className="flex-1 min-w-0">
               <input
                 type="range"
@@ -343,173 +289,135 @@ export default function TranscriptionEditor({
                     audioRef.current.currentTime = parseFloat(e.target.value);
                   }
                 }}
-                className="w-full h-2 bg-muted rounded-lg appearance-none cursor-pointer"
+                className="w-full h-1 bg-gray-200 rounded-full appearance-none cursor-pointer accent-gray-900"
               />
-              <div className="flex items-center justify-between mt-1">
-                <span className="text-xs text-muted-foreground">
-                  {formatTime(currentTime).split(",")[0]}
-                </span>
-                <span className="text-xs text-muted-foreground">
-                  {formatTime(totalDuration).split(",")[0]}
-                </span>
+              <div className="flex items-center justify-between mt-2 text-xs text-gray-500">
+                <span>{formatTime(currentTime)}</span>
+                <span>{formatTime(totalDuration)}</span>
               </div>
             </div>
-
-            {/* Skip buttons */}
-            <div className="flex gap-1 flex-shrink-0">
-              <Button
-                variant="outline"
-                size="icon"
-                onClick={() => handleSkip(-5)}
-                className="h-8 w-8 sm:h-10 sm:w-10 text-xs"
-                title="Voltar 5s"
-              >
-                -5
-              </Button>
-              <Button
-                variant="outline"
-                size="icon"
-                onClick={() => handleSkip(5)}
-                className="h-8 w-8 sm:h-10 sm:w-10 text-xs"
-                title="Avançar 5s"
-              >
-                +5
-              </Button>
-            </div>
           </div>
         </div>
       </div>
 
-      {/* Texto Completo - Responsivo */}
-      <div className="border-b border-border bg-muted/30">
-        <div className="px-4 sm:px-6 py-4 sm:py-6">
-          <div className="flex items-center justify-between mb-3 gap-2">
-            <h2 className="font-semibold text-sm sm:text-base text-foreground">Transcrição Completa</h2>
-            <Button 
-              size="sm" 
-              variant="outline" 
-              onClick={() => setShowFullText(!showFullText)}
-              className="text-xs"
-            >
-              {showFullText ? "Ocultar" : "Mostrar"}
-            </Button>
-          </div>
-          {showFullText && (
-            <div className="bg-background p-3 sm:p-4 rounded-lg border border-border max-h-48 overflow-y-auto">
-              <p className="text-xs sm:text-sm leading-relaxed whitespace-pre-wrap">
-                {segments.map((seg) => `${seg.speaker}: ${seg.text}`).join("\n\n")}
-              </p>
-            </div>
-          )}
-        </div>
-      </div>
+      {/* Conteúdo Principal */}
+      <div className="max-w-5xl mx-auto px-4 sm:px-6 py-8">
+        {/* Segmentos */}
+        <div className="mb-12">
+          <h2 className="text-sm font-semibold text-gray-900 mb-6 uppercase tracking-wide">
+            Transcrição
+          </h2>
+          
+          <div className="space-y-3">
+            {segments.length === 0 ? (
+              <div className="text-center py-12 text-gray-500 text-sm">
+                Nenhum segmento disponível
+              </div>
+            ) : (
+              segments.map((segment) => (
+                <div
+                  key={segment.id}
+                  className={`p-4 rounded-lg border transition-all cursor-pointer ${
+                    currentSegment?.id === segment.id
+                      ? "border-gray-900 bg-gray-50"
+                      : "border-gray-100 hover:border-gray-200 bg-white"
+                  }`}
+                  onClick={() => {
+                    if (audioRef.current) {
+                      audioRef.current.currentTime = segment.start;
+                    }
+                  }}
+                >
+                  <div className="flex items-start justify-between gap-3">
+                    <div className="flex-1 min-w-0">
+                      <div className="flex items-center gap-2 mb-2">
+                        <span className="text-xs font-medium text-gray-500">
+                          {formatTime(segment.start)}
+                        </span>
+                        <span className="text-xs px-2 py-1 bg-gray-100 rounded text-gray-700">
+                          {segment.speaker}
+                        </span>
+                      </div>
 
-      {/* Segmentos - Responsivo */}
-      <div className="px-4 sm:px-6 py-4 sm:py-6">
-        <h2 className="font-semibold text-sm sm:text-base text-foreground mb-3 sm:mb-4">Segmentos</h2>
-        <div className="space-y-2 sm:space-y-3">
-          {segments.length === 0 ? (
-            <div className="text-center py-8 text-muted-foreground text-sm">
-              Nenhum segmento disponível
-            </div>
-          ) : (
-            segments.map((segment) => (
-              <div
-                key={segment.id}
-                className={`p-3 sm:p-4 rounded-lg border transition-colors cursor-pointer ${
-                  currentSegment?.id === segment.id
-                    ? "border-primary bg-primary/5"
-                    : "border-border hover:border-primary/50"
-                }`}
-                onClick={() => {
-                  if (audioRef.current) {
-                    audioRef.current.currentTime = segment.start;
-                  }
-                }}
-              >
-                <div className="flex items-start justify-between gap-2 sm:gap-4">
-                  <div className="flex-1 min-w-0">
-                    <div className="flex items-center gap-1 sm:gap-2 mb-2 flex-wrap">
-                      <span className="text-xs sm:text-sm font-medium text-primary">
-                        {formatTime(segment.start)}
-                      </span>
-                      <span className="text-xs text-muted-foreground">→</span>
-                      <span className="text-xs sm:text-sm font-medium text-primary">
-                        {formatTime(segment.end)}
-                      </span>
-                      <span className="text-xs px-2 py-1 bg-accent/20 rounded text-accent-foreground">
-                        {segment.speaker}
-                      </span>
+                      {editingSegmentId === segment.id ? (
+                        <textarea
+                          value={editingText}
+                          onChange={(e) => setEditingText(e.target.value)}
+                          className="w-full p-2 border border-gray-200 rounded text-sm text-gray-900 focus:outline-none focus:ring-1 focus:ring-gray-900"
+                          rows={2}
+                          autoFocus
+                        />
+                      ) : (
+                        <p className="text-sm text-gray-700 leading-relaxed">{segment.text}</p>
+                      )}
                     </div>
 
-                    {editingSegmentId === segment.id ? (
-                      <textarea
-                        value={editingText}
-                        onChange={(e) => setEditingText(e.target.value)}
-                        className="w-full p-2 border border-border rounded bg-background text-foreground text-xs sm:text-sm"
-                        rows={2}
-                        autoFocus
-                      />
-                    ) : (
-                      <p className="text-xs sm:text-sm text-foreground break-words">{segment.text}</p>
-                    )}
-                  </div>
-
-                  <div className="flex gap-1 flex-shrink-0">
-                    {editingSegmentId === segment.id ? (
-                      <>
-                        <Button
-                          size="sm"
-                          variant="outline"
-                          onClick={() => saveSegmentEdit(segment.id)}
-                          className="h-8 w-8 p-0"
-                        >
-                          <Check className="w-4 h-4" />
-                        </Button>
-                        <Button
-                          size="sm"
-                          variant="outline"
-                          onClick={cancelSegmentEdit}
-                          className="h-8 w-8 p-0"
-                        >
-                          <X className="w-4 h-4" />
-                        </Button>
-                      </>
-                    ) : (
-                      <>
-                        <Button
-                          size="sm"
-                          variant="outline"
-                          onClick={() => startEditSegment(segment)}
-                          className="h-8 w-8 p-0"
-                        >
-                          <Edit2 className="w-4 h-4" />
-                        </Button>
-                        <Button
-                          size="sm"
-                          variant="outline"
-                          onClick={() => deleteSegment(segment.id)}
-                          className="h-8 w-8 p-0 text-destructive hover:text-destructive"
-                        >
-                          <X className="w-4 h-4" />
-                        </Button>
-                      </>
-                    )}
+                    <div className="flex gap-2 flex-shrink-0">
+                      {editingSegmentId === segment.id ? (
+                        <>
+                          <button
+                            onClick={() => saveSegmentEdit(segment.id)}
+                            className="px-2 py-1 text-xs font-medium text-gray-900 hover:bg-gray-100 rounded transition-colors"
+                          >
+                            Salvar
+                          </button>
+                          <button
+                            onClick={() => setEditingSegmentId(null)}
+                            className="px-2 py-1 text-xs font-medium text-gray-600 hover:bg-gray-100 rounded transition-colors"
+                          >
+                            Cancelar
+                          </button>
+                        </>
+                      ) : (
+                        <>
+                          <button
+                            onClick={() => startEditSegment(segment)}
+                            className="px-2 py-1 text-xs font-medium text-gray-600 hover:bg-gray-100 rounded transition-colors"
+                          >
+                            Editar
+                          </button>
+                          <button
+                            onClick={() => deleteSegment(segment.id)}
+                            className="px-2 py-1 text-xs font-medium text-gray-600 hover:bg-red-50 hover:text-red-600 rounded transition-colors"
+                          >
+                            Remover
+                          </button>
+                        </>
+                      )}
+                    </div>
                   </div>
                 </div>
-              </div>
-            ))
-          )}
+              ))
+            )}
+          </div>
+        </div>
+
+        {/* Botão Salvar */}
+        <div className="flex justify-end mb-12">
+          <button
+            onClick={handleSave}
+            disabled={saveMutation.isPending}
+            className="px-6 py-2 bg-gray-900 text-white rounded-lg font-medium text-sm hover:bg-gray-800 transition-colors disabled:opacity-50"
+          >
+            {saveMutation.isPending ? "Salvando..." : "Salvar Transcrição"}
+          </button>
+        </div>
+
+        {/* Análise de Criativo */}
+        <div className="border-t border-gray-100 pt-12">
+          <div className="flex items-center gap-2 mb-6">
+            <Zap className="w-5 h-5 text-gray-900" />
+            <h2 className="text-sm font-semibold text-gray-900 uppercase tracking-wide">
+              Análise de Criativo
+            </h2>
+          </div>
+          <CreativeAnalysis
+            text={segments.map((seg) => seg.text).join(" ")}
+            segments={segments}
+          />
         </div>
       </div>
 
-      {/* Análise de Criativo com IA */}
-      <CreativeAnalysis
-        text={segments.map((seg) => seg.text).join(" ")}
-        segments={segments}
-      />
-
-      {/* Audio element */}
       <audio ref={audioRef} />
     </div>
   );
