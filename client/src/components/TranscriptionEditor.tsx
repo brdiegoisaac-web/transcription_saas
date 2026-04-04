@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { ArrowLeft, Copy, Download, Play, Pause, Volume2, Save, Edit2, Check, X, MoreVertical, Zap } from "lucide-react";
+import { ArrowLeft, Copy, Download, Save, Edit2, Check, X, MoreVertical, Zap } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import {
   Select,
@@ -17,6 +17,7 @@ import {
 import { toast } from "sonner";
 import { trpc } from "@/lib/trpc";
 import CreativeAnalysis from "@/components/CreativeAnalysis";
+import AudioPlayer from "@/components/AudioPlayer";
 
 interface Segment {
   id: number;
@@ -81,16 +82,15 @@ export default function TranscriptionEditor({ transcription, onBack }: Transcrip
   const [segments, setSegments] = useState<Segment[]>(transcription.segments);
   const [currentTime, setCurrentTime] = useState(0);
   const [totalDuration, setTotalDuration] = useState(0);
-  const [isPlaying, setIsPlaying] = useState(false);
   const [currentSegment, setCurrentSegment] = useState<Segment | null>(null);
   const [editingSegmentId, setEditingSegmentId] = useState<number | null>(null);
   const [editingText, setEditingText] = useState("");
-  const audioRef = useState<HTMLAudioElement | null>(null)[0];
 
   const formatTime = (seconds: number) => {
+    if (!isFinite(seconds)) return "0:00";
     const mins = Math.floor(seconds / 60);
     const secs = Math.floor(seconds % 60);
-    return `${mins.toString().padStart(2, "0")}:${secs.toString().padStart(2, "0")}`;
+    return `${mins}:${secs.toString().padStart(2, "0")}`;
   };
 
   const handleCopyParagraph = () => {
@@ -134,10 +134,9 @@ export default function TranscriptionEditor({ transcription, onBack }: Transcrip
 
   return (
     <div className="min-h-screen bg-white">
-      <audio ref={audioRef as any} src={transcription.fileUrl} onLoadedMetadata={(e) => setTotalDuration((e.target as HTMLAudioElement).duration)} />
 
       {/* Header */}
-      <header className="border-b border-blue-100 sticky top-0 z-40 bg-white/95 backdrop-blur-sm">
+      <header className="border-b border-blue-100 sticky top-0 z-50 bg-white/95 backdrop-blur-sm">
         <div className="max-w-5xl mx-auto px-4 sm:px-6 py-4 sm:py-5">
           <div className="flex items-center justify-between gap-4">
             <div className="flex items-center gap-3 min-w-0 flex-1">
@@ -182,48 +181,19 @@ export default function TranscriptionEditor({ transcription, onBack }: Transcrip
       </header>
 
       {/* Player */}
-      <div className="border-b border-blue-100 bg-blue-50/30">
-        <div className="max-w-5xl mx-auto px-4 sm:px-6 py-4">
-          <div className="flex items-center gap-3">
-            <button
-              onClick={() => setIsPlaying(!isPlaying)}
-              className="p-2 hover:bg-white rounded-lg transition-colors"
-            >
-              {isPlaying ? (
-                <Pause className="w-5 h-5 text-blue-900" />
-              ) : (
-                <Play className="w-5 h-5 text-blue-900" />
-              )}
-            </button>
-
-            <div className="flex-1 min-w-0">
-              <input
-                type="range"
-                min="0"
-                max={totalDuration}
-                value={currentTime}
-                onChange={(e) => {
-                  const audio = audioRef as any;
-                  if (audio) {
-                    audio.currentTime = parseFloat(e.target.value);
-                  }
-                }}
-                className="w-full h-1 bg-gray-200 rounded-full appearance-none cursor-pointer accent-blue-900"
-              />
-              <div className="flex items-center justify-between mt-2 text-xs text-gray-500">
-                <span>{formatTime(currentTime)}</span>
-                <span>{formatTime(totalDuration)}</span>
-              </div>
-            </div>
-          </div>
-        </div>
+      <div className="max-w-5xl mx-auto px-4 sm:px-6 py-4">
+        <AudioPlayer
+          src={transcription.fileUrl}
+          onTimeUpdate={setCurrentTime}
+          onDurationChange={setTotalDuration}
+        />
       </div>
 
       {/* Content */}
-      <main className="max-w-5xl mx-auto px-4 sm:px-6 py-8 sm:py-12">
+      <main className="max-w-5xl mx-auto px-4 sm:px-6 py-6 sm:py-8">
         {/* Segmentos */}
-        <div className="mb-12">
-          <h2 className="text-sm font-semibold text-blue-900 mb-6 uppercase tracking-wide">
+        <div className="mb-8">
+          <h2 className="text-sm font-semibold text-blue-900 mb-4 uppercase tracking-wide">
             Transcrição
           </h2>
 
@@ -277,6 +247,11 @@ export default function TranscriptionEditor({ transcription, onBack }: Transcrip
                         <span className="text-xs px-2 py-1 bg-blue-100 rounded text-blue-900 font-medium">
                           {segment.speaker}
                         </span>
+                        {currentTime >= segment.start && currentTime < segment.end && (
+                          <span className="text-xs px-2 py-1 bg-blue-500 text-white rounded animate-pulse">
+                            Reproduzindo
+                          </span>
+                        )}
                       </div>
                       <p className="text-sm text-gray-900 mb-3">{segment.text}</p>
                       <div className="flex gap-2">
