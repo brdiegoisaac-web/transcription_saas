@@ -1,5 +1,9 @@
 import { ENV } from "./_core/env";
 import { invokeLLM } from "./_core/llm";
+import { execSync } from "child_process";
+import { writeFileSync, unlinkSync, readFileSync } from "fs";
+import path from "path";
+import os from "os";
 
 export interface TranscriptionSegment {
   id: number;
@@ -16,6 +20,76 @@ export interface TranscriptionResult {
 }
 
 /**
+ * Comprimir áudio/vídeo se for muito grande
+ * Groq tem limite de 25MB
+ */
+async function compressAudioIfNeeded(buffer: Buffer, fileName: string): Promise<Buffer> {
+  const MAX_GROQ_SIZE = 25 * 1024 * 1024; // 25MB
+
+  if (buffer.length <= MAX_GROQ_SIZE) {
+    return buffer;
+  }
+
+  console.log(
+    `[Compression] Arquivo muito grande (${(buffer.length / 1024 / 1024).toFixed(1)}MB), comprimindo...`
+  );
+
+  try {
+    const tmpDir = os.tmpdir();
+    const timestamp = Date.now();
+    const random = Math.random().toString(36).slice(2);
+    const inputPath = path.join(tmpDir, `input-${timestamp}-${random}.mp4`);
+    const outputPath = path.join(tmpDir, `output-${timestamp}-${random}.mp3`);
+
+    // Escrever arquivo temporário
+    writeFileSync(inputPath, buffer);
+
+    try {
+      // Comprimir usando ffmpeg: extrair apenas áudio com bitrate reduzido
+      const command = `ffmpeg -i "${inputPath}" -q:a 9 -b:a 64k "${outputPath}" -y 2>&1`;
+      console.log(`[Compression] Executando: ${command}`);
+      
+      execSync(command, {
+        stdio: "pipe",
+        maxBuffer: 50 * 1024 * 1024,
+        timeout: 300000, // 5 minutos
+      });
+
+      // Ler arquivo comprimido
+      const compressedBuffer = readFileSync(outputPath);
+
+      console.log(
+        `[Compression] Sucesso: ${(buffer.length / 1024 / 1024).toFixed(1)}MB → ${(compressedBuffer.length / 1024 / 1024).toFixed(1)}MB`
+      );
+
+      // Limpar arquivos temporários
+      try {
+        unlinkSync(inputPath);
+      } catch {}
+      try {
+        unlinkSync(outputPath);
+      } catch {}
+
+      return compressedBuffer;
+    } catch (error) {
+      // Limpar em caso de erro
+      try {
+        unlinkSync(inputPath);
+      } catch {}
+      try {
+        unlinkSync(outputPath);
+      } catch {}
+      throw error;
+    }
+  } catch (error) {
+    console.error("[Compression] Erro ao comprimir:", error);
+    throw new Error(
+      `Arquivo muito grande (${(buffer.length / 1024 / 1024).toFixed(1)}MB) e não foi possível comprimir. Máximo suportado: 25MB`
+    );
+  }
+}
+
+/**
  * Transcrever áudio usando Groq API (Whisper)
  * @param audioBuffer - Buffer do arquivo de áudio
  * @param fileName - Nome do arquivo (para referência)
@@ -29,6 +103,9 @@ export async function transcribeWithGroq(
   if (!ENV.groqApiKey) {
     throw new Error("GROQ_API_KEY não configurada");
   }
+
+  // Comprimir se necessário
+  let processedBuffer = await compressAudioIfNeeded(audioBuffer, fileName);
 
   // Retry logic com exponential backoff
   const maxRetries = 3;
@@ -61,11 +138,11 @@ export async function transcribeWithGroq(
       );
 
       // Concatenar buffers
-      const fullBody = Buffer.concat([bodyStart, audioBuffer, bodyEnd]);
+      const fullBody = Buffer.concat([bodyStart, processedBuffer, bodyEnd]);
 
       // Fazer requisição para Groq API com timeout
       const controller = new AbortController();
-      const timeoutId = setTimeout(() => controller.abort(), 60000); // 60 segundos timeout
+      const timeoutId = setTimeout(() => controller.abort(), 120000); // 120 segundos timeout
 
       try {
         const response = await fetch("https://api.groq.com/openai/v1/audio/transcriptions", {
