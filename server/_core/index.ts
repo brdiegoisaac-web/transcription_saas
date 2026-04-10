@@ -2,11 +2,13 @@ import "dotenv/config";
 import express from "express";
 import { createServer } from "http";
 import net from "net";
+import multer from "multer";
 import { createExpressMiddleware } from "@trpc/server/adapters/express";
 import { registerOAuthRoutes } from "./oauth";
 import { appRouter } from "../routers";
 import { createContext } from "./context";
 import { serveStatic, setupVite } from "./vite";
+import { transcribeWithGroq, cleanupTranscriptionText } from "../transcription";
 
 function isPortAvailable(port: number): Promise<boolean> {
   return new Promise(resolve => {
@@ -35,6 +37,44 @@ async function startServer() {
   app.use(express.urlencoded({ limit: "100mb", extended: true }));
   // OAuth callback under /api/oauth/callback
   registerOAuthRoutes(app);
+  
+  // Configure multer for file uploads
+  const upload = multer({ storage: multer.memoryStorage() });
+  
+  // File upload endpoint
+  app.post("/api/upload", upload.single("file"), async (req, res) => {
+    try {
+      if (!req.file) {
+        return res.status(400).json({ error: "No file provided" });
+      }
+      
+      const inputLanguage = (req.body.inputLanguage || "pt") as "pt" | "en" | "es";
+      const fileName = req.body.fileName || req.file.originalname;
+      
+      // Transcrever arquivo
+      const result = await transcribeWithGroq(req.file.buffer, fileName, inputLanguage);
+      
+      // Limpar pontuação
+      const cleanedSegments = await cleanupTranscriptionText(result.segments);
+      const cleanedText = cleanedSegments.map((s) => s.text).join(" ");
+      
+      res.json({
+        success: true,
+        data: {
+          ...result,
+          text: cleanedText,
+          segments: cleanedSegments,
+        },
+      });
+    } catch (error) {
+      console.error("[Upload Error]", error);
+      res.status(500).json({
+        success: false,
+        error: error instanceof Error ? error.message : "Unknown error",
+      });
+    }
+  });
+  
   // tRPC API
   app.use(
     "/api/trpc",

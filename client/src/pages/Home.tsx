@@ -141,28 +141,26 @@ export default function Home() {
         throw new Error("Não foi possível determinar a duração do áudio");
       }
 
-      setUploadProgress(60);
-
-      // Ler arquivo como base64
-      const reader = new FileReader();
-      const audioBase64 = await new Promise<string>((resolve) => {
-        reader.onload = () => {
-          const result = reader.result as string;
-          const base64 = result.split(",")[1];
-          resolve(base64);
-        };
-        reader.readAsDataURL(file);
-      });
-
       setUploadProgress(80);
 
-      // Chamar API de transcrição real
-      const transcriptionResult = await transcribeMutation.mutateAsync({
-        audioBase64,
-        fileName: file.name,
-        inputLanguage,
-        outputLanguage,
+      // Chamar API de transcrição real usando FormData
+      const formData = new FormData();
+      formData.append("file", file);
+      formData.append("fileName", file.name);
+      formData.append("inputLanguage", inputLanguage);
+      formData.append("outputLanguage", outputLanguage);
+      
+      const response = await fetch("/api/upload", {
+        method: "POST",
+        body: formData,
+        credentials: "include",
       });
+      
+      if (!response.ok) {
+        throw new Error(`Erro ao fazer upload: ${response.statusText}`);
+      }
+      
+      const transcriptionResult = await response.json();
 
       setUploadProgress(95);
 
