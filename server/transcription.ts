@@ -46,8 +46,9 @@ async function compressAudioIfNeeded(buffer: Buffer, fileName: string): Promise<
     writeFileSync(inputPath, buffer);
 
     try {
-      // Comprimir usando ffmpeg: extrair apenas áudio com bitrate reduzido
-      const command = `ffmpeg -i "${inputPath}" -q:a 9 -b:a 64k "${outputPath}" -y 2>&1`;
+      // Comprimir usando ffmpeg: extrair apenas áudio com bitrate muito reduzido
+      // Usar 32k bitrate para garantir que fica abaixo de 25MB
+      const command = `ffmpeg -i "${inputPath}" -q:a 9 -b:a 32k "${outputPath}" -y 2>&1`;
       console.log(`[Compression] Executando: ${command}`);
       
       execSync(command, {
@@ -58,10 +59,37 @@ async function compressAudioIfNeeded(buffer: Buffer, fileName: string): Promise<
 
       // Ler arquivo comprimido
       const compressedBuffer = readFileSync(outputPath);
+      const MAX_MANUS_SIZE = 25 * 1024 * 1024;
 
       console.log(
         `[Compression] Sucesso: ${(buffer.length / 1024 / 1024).toFixed(1)}MB → ${(compressedBuffer.length / 1024 / 1024).toFixed(1)}MB`
       );
+
+      if (compressedBuffer.length > MAX_MANUS_SIZE) {
+        console.log(`[Compression] Ainda muito grande, comprimindo mais...`);
+        const inputPath2 = path.join(tmpDir, `input2-${timestamp}-${random}.mp3`);
+        const outputPath2 = path.join(tmpDir, `output2-${timestamp}-${random}.mp3`);
+        writeFileSync(inputPath2, compressedBuffer);
+        
+        try {
+          const command2 = `ffmpeg -i "${inputPath2}" -q:a 9 -b:a 8k "${outputPath2}" -y 2>&1`;
+          execSync(command2, { stdio: "pipe", maxBuffer: 50 * 1024 * 1024, timeout: 300000 });
+          const compressedBuffer2 = readFileSync(outputPath2);
+          console.log(`[Compression] Segunda compressao: ${(compressedBuffer2.length / 1024 / 1024).toFixed(1)}MB`);
+          
+          try { unlinkSync(inputPath2); } catch {}
+          try { unlinkSync(outputPath2); } catch {}
+          
+          if (compressedBuffer2.length > MAX_MANUS_SIZE) {
+            throw new Error(`Arquivo ainda muito grande: ${(compressedBuffer2.length / 1024 / 1024).toFixed(1)}MB`);
+          }
+          return compressedBuffer2;
+        } catch (error2) {
+          try { unlinkSync(inputPath2); } catch {}
+          try { unlinkSync(outputPath2); } catch {}
+          throw error2;
+        }
+      }
 
       // Limpar arquivos temporários
       try {
