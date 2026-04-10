@@ -30,64 +30,94 @@ export async function transcribeWithGroq(
     throw new Error("GROQ_API_KEY não configurada");
   }
 
-  try {
-    // Criar FormData manualmente com boundary
-    const boundary = "----FormBoundary" + Date.now();
-    let body = "";
+  // Retry logic com exponential backoff
+  const maxRetries = 3;
+  let lastError: Error | null = null;
 
-    // Adicionar arquivo
-    body += `--${boundary}\r\n`;
-    body += `Content-Disposition: form-data; name="file"; filename="${fileName}"\r\n`;
-    body += `Content-Type: audio/mpeg\r\n\r\n`;
+  for (let attempt = 0; attempt < maxRetries; attempt++) {
+    try {
+      // Criar FormData manualmente com boundary
+      const boundary = "----FormBoundary" + Date.now() + Math.random();
+      let body = "";
 
-    // Converter para string binária para concatenar com o buffer
-    const bodyStart = Buffer.from(body);
-    const bodyEnd = Buffer.from(
-      `\r\n--${boundary}\r\n` +
-        `Content-Disposition: form-data; name="model"\r\n\r\n` +
-        `whisper-large-v3-turbo\r\n` +
-        `--${boundary}\r\n` +
-        `Content-Disposition: form-data; name="language"\r\n\r\n` +
-        `${language}\r\n` +
-        `--${boundary}\r\n` +
-        `Content-Disposition: form-data; name="response_format"\r\n\r\n` +
-        `json\r\n` +
-        `--${boundary}--\r\n`
-    );
+      // Adicionar arquivo
+      body += `--${boundary}\r\n`;
+      body += `Content-Disposition: form-data; name="file"; filename="${fileName}"\r\n`;
+      body += `Content-Type: audio/mpeg\r\n\r\n`;
 
-    // Concatenar buffers
-    const fullBody = Buffer.concat([bodyStart, audioBuffer, bodyEnd]);
+      // Converter para string binária para concatenar com o buffer
+      const bodyStart = Buffer.from(body);
+      const bodyEnd = Buffer.from(
+        `\r\n--${boundary}\r\n` +
+          `Content-Disposition: form-data; name="model"\r\n\r\n` +
+          `whisper-large-v3-turbo\r\n` +
+          `--${boundary}\r\n` +
+          `Content-Disposition: form-data; name="language"\r\n\r\n` +
+          `${language}\r\n` +
+          `--${boundary}\r\n` +
+          `Content-Disposition: form-data; name="response_format"\r\n\r\n` +
+          `json\r\n` +
+          `--${boundary}--\r\n`
+      );
 
-    // Fazer requisição para Groq API
-    const response = await fetch("https://api.groq.com/openai/v1/audio/transcriptions", {
-      method: "POST",
-      headers: {
-        Authorization: `Bearer ${ENV.groqApiKey}`,
-        "Content-Type": `multipart/form-data; boundary=${boundary}`,
-      },
-      body: fullBody as any,
-    });
+      // Concatenar buffers
+      const fullBody = Buffer.concat([bodyStart, audioBuffer, bodyEnd]);
 
-    if (!response.ok) {
-      const error = await response.text();
-      throw new Error(`Groq API error: ${response.status} - ${error}`);
+      // Fazer requisição para Groq API com timeout
+      const controller = new AbortController();
+      const timeoutId = setTimeout(() => controller.abort(), 60000); // 60 segundos timeout
+
+      try {
+        const response = await fetch("https://api.groq.com/openai/v1/audio/transcriptions", {
+          method: "POST",
+          headers: {
+            Authorization: `Bearer ${ENV.groqApiKey}`,
+            "Content-Type": `multipart/form-data; boundary=${boundary}`,
+          },
+          body: fullBody as any,
+          signal: controller.signal as any,
+        });
+
+        clearTimeout(timeoutId);
+
+        if (!response.ok) {
+          const error = await response.text();
+          throw new Error(`Groq API error: ${response.status} - ${error}`);
+        }
+
+        const data = (await response.json()) as any;
+
+        // Processar resposta e gerar segmentos
+        const text = data.text || "";
+        const segments = processTranscriptionSegments(text, data.segments || []);
+
+        return {
+          text,
+          segments,
+          language: data.language || "pt",
+        };
+      } catch (fetchError) {
+        clearTimeout(timeoutId);
+        throw fetchError;
+      }
+    } catch (error) {
+      lastError = error as Error;
+      console.error(`[Transcription] Tentativa ${attempt + 1}/${maxRetries} falhou:`, error);
+
+      // Se for a última tentativa, lançar erro
+      if (attempt === maxRetries - 1) {
+        throw new Error(
+          `Falha ao transcrever após ${maxRetries} tentativas: ${lastError?.message || "Erro desconhecido"}`
+        );
+      }
+
+      // Esperar antes de tentar novamente (exponential backoff)
+      const delayMs = Math.pow(2, attempt) * 1000;
+      await new Promise((resolve) => setTimeout(resolve, delayMs));
     }
-
-    const data = (await response.json()) as any;
-
-    // Processar resposta e gerar segmentos
-    const text = data.text || "";
-    const segments = processTranscriptionSegments(text, data.segments || []);
-
-    return {
-      text,
-      segments,
-      language: data.language || "pt",
-    };
-  } catch (error) {
-    console.error("[Transcription] Erro ao transcrever com Groq:", error);
-    throw error;
   }
+
+  throw lastError || new Error("Erro desconhecido ao transcrever");
 }
 
 /**
@@ -181,7 +211,7 @@ REGRAS:
     });
 
     const cleanedText = (response.choices[0]?.message?.content as string) || "";
-    
+
     // Parsear resposta e aplicar aos segmentos
     const cleanedLines = cleanedText.split("\n").filter((l) => l.trim());
     const cleanedMap = new Map<number, string>();

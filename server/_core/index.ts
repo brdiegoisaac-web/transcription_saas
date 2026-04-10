@@ -67,10 +67,11 @@ async function startServer() {
         },
       });
     } catch (error) {
-      console.error("[Upload Error]", error);
+      const errorMessage = error instanceof Error ? error.message : "Unknown error";
+      console.error("[Upload Error]", errorMessage);
       res.status(500).json({
         success: false,
-        error: error instanceof Error ? error.message : "Unknown error",
+        error: errorMessage,
       });
     }
   });
