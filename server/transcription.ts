@@ -1,5 +1,6 @@
 import { ENV } from "./_core/env";
 import { invokeLLM } from "./_core/llm";
+import { transcribeAudio } from "./_core/voiceTranscription";
 import { execSync } from "child_process";
 import { writeFileSync, unlinkSync, readFileSync } from "fs";
 import path from "path";
@@ -90,7 +91,7 @@ async function compressAudioIfNeeded(buffer: Buffer, fileName: string): Promise<
 }
 
 /**
- * Transcrever áudio usando Groq API (Whisper)
+ * Transcrever áudio usando Groq API (Whisper) com fallback para Manus API
  * @param audioBuffer - Buffer do arquivo de áudio
  * @param fileName - Nome do arquivo (para referência)
  * @returns Resultado da transcrição com segmentos
@@ -107,8 +108,28 @@ export async function transcribeWithGroq(
   // Comprimir se necessário
   let processedBuffer = await compressAudioIfNeeded(audioBuffer, fileName);
 
-  // Retry logic com exponential backoff
-  const maxRetries = 3;
+  // Tentar com Groq primeiro
+  console.log("[Transcription] Tentando Groq API...");
+  const groqResult = await tryGroqTranscription(processedBuffer, fileName, language);
+  
+  if (groqResult.success) {
+    return groqResult.data!;
+  }
+
+  // Fallback para Manus API
+  console.log("[Transcription] Groq falhou, usando fallback Manus API...");
+  return tryManusTranscription(audioBuffer, fileName, language);
+}
+
+/**
+ * Tentar transcrição com Groq API
+ */
+async function tryGroqTranscription(
+  audioBuffer: Buffer,
+  fileName: string,
+  language: "pt" | "en" | "es"
+): Promise<{ success: boolean; data?: TranscriptionResult; error?: string }> {
+  const maxRetries = 2; // Menos tentativas para Groq, mais rápido fazer fallback
   let lastError: Error | null = null;
 
   for (let attempt = 0; attempt < maxRetries; attempt++) {
@@ -138,7 +159,7 @@ export async function transcribeWithGroq(
       );
 
       // Concatenar buffers
-      const fullBody = Buffer.concat([bodyStart, processedBuffer, bodyEnd]);
+      const fullBody = Buffer.concat([bodyStart, audioBuffer, bodyEnd]);
 
       // Fazer requisição para Groq API com timeout
       const controller = new AbortController();
@@ -168,10 +189,14 @@ export async function transcribeWithGroq(
         const text = data.text || "";
         const segments = processTranscriptionSegments(text, data.segments || []);
 
+        console.log("[Transcription] Groq sucesso!");
         return {
-          text,
-          segments,
-          language: data.language || "pt",
+          success: true,
+          data: {
+            text,
+            segments,
+            language: data.language || "pt",
+          },
         };
       } catch (fetchError) {
         clearTimeout(timeoutId);
@@ -179,22 +204,92 @@ export async function transcribeWithGroq(
       }
     } catch (error) {
       lastError = error as Error;
-      console.error(`[Transcription] Tentativa ${attempt + 1}/${maxRetries} falhou:`, error);
+      console.error(`[Transcription] Groq tentativa ${attempt + 1}/${maxRetries} falhou:`, error);
 
-      // Se for a última tentativa, lançar erro
+      // Se for a última tentativa, retornar erro
       if (attempt === maxRetries - 1) {
-        throw new Error(
-          `Falha ao transcrever após ${maxRetries} tentativas: ${lastError?.message || "Erro desconhecido"}`
-        );
+        return {
+          success: false,
+          error: lastError?.message || "Erro desconhecido ao transcrever com Groq",
+        };
       }
 
-      // Esperar antes de tentar novamente (exponential backoff)
+      // Esperar antes de tentar novamente
       const delayMs = Math.pow(2, attempt) * 1000;
       await new Promise((resolve) => setTimeout(resolve, delayMs));
     }
   }
 
-  throw lastError || new Error("Erro desconhecido ao transcrever");
+  return {
+    success: false,
+    error: lastError?.message || "Erro ao transcrever com Groq",
+  };
+}
+
+/**
+ * Tentar transcrição com Manus API (fallback)
+ */
+async function tryManusTranscription(
+  audioBuffer: Buffer,
+  fileName: string,
+  language: "pt" | "en" | "es"
+): Promise<TranscriptionResult> {
+  // Salvar arquivo temporário
+  const tmpDir = os.tmpdir();
+  const timestamp = Date.now();
+  const random = Math.random().toString(36).slice(2);
+  const tmpPath = path.join(tmpDir, `audio-${timestamp}-${random}.mp3`);
+
+  try {
+    writeFileSync(tmpPath, audioBuffer);
+
+    // Usar o serviço de transcrição do Manus
+    // Nota: transcribeAudio espera uma URL, então precisamos fazer upload primeiro
+    // Para agora, vamos usar a API diretamente
+
+    // Criar FormData para enviar para Manus
+    const formData = new FormData();
+    const blob = new Blob([Buffer.from(audioBuffer)], { type: "audio/mpeg" });
+    formData.append("file", blob, fileName);
+    formData.append("model", "whisper-1");
+    formData.append("language", language);
+
+    const response = await fetch(`${ENV.forgeApiUrl}/v1/audio/transcriptions`, {
+      method: "POST",
+      headers: {
+        Authorization: `Bearer ${ENV.forgeApiKey}`,
+      },
+      body: formData as any,
+    });
+
+    if (!response.ok) {
+      const error = await response.text();
+      throw new Error(`Manus API error: ${response.status} - ${error}`);
+    }
+
+    const data = (await response.json()) as any;
+
+    // Processar resposta
+    const text = data.text || "";
+    const segments = processTranscriptionSegments(text, data.segments || []);
+
+    console.log("[Transcription] Manus API sucesso!");
+    return {
+      text,
+      segments,
+      language: data.language || language,
+    };
+  } catch (error) {
+    console.error("[Transcription] Manus API falhou:", error);
+    throw new Error(
+      `Falha ao transcrever com ambas as APIs: ${error instanceof Error ? error.message : "Erro desconhecido"}`
+    );
+  } finally {
+    // Limpar arquivo temporário
+    try {
+      unlinkSync(tmpPath);
+    } catch {}
+  }
 }
 
 /**
@@ -210,8 +305,6 @@ function processTranscriptionSegments(
   }
 
   // Mapear segmentos da API
-  // Whisper não faz diarização real — manter como falante único
-  // a menos que a API retorne dados de speaker reais
   return apiSegments.map((seg, idx) => ({
     id: idx,
     start: seg.start || 0,
@@ -252,7 +345,6 @@ function createDefaultSegments(text: string): TranscriptionSegment[] {
 
 /**
  * Limpar e melhorar pontuação da transcrição usando LLM
- * Processa todos os segmentos de uma vez pra eficiência
  */
 export async function cleanupTranscriptionText(
   segments: TranscriptionSegment[]

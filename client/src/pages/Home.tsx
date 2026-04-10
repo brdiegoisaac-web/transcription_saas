@@ -157,10 +157,18 @@ export default function Home() {
       });
       
       if (!response.ok) {
-        throw new Error(`Erro ao fazer upload: ${response.statusText}`);
+        const errorText = await response.text();
+        console.error("[Upload Error Response]", response.status, errorText);
+        throw new Error(`Erro ao fazer upload: ${response.status} - ${response.statusText}`);
       }
       
-      const transcriptionResult = await response.json();
+      let transcriptionResult;
+      try {
+        transcriptionResult = await response.json();
+      } catch (parseError) {
+        console.error("[Parse Error]", parseError);
+        throw new Error("Erro ao processar resposta do servidor");
+      }
 
       setUploadProgress(95);
 
@@ -182,8 +190,19 @@ export default function Home() {
       setUploadProgress(100);
       toast.success("Áudio transcrito com sucesso!");
     } catch (error) {
-      console.error("Erro ao processar arquivo:", error);
-      toast.error(error instanceof Error ? error.message : "Erro ao processar arquivo");
+      console.error("[handleFileUpload Error]", error);
+      
+      let errorMessage = error instanceof Error ? error.message : "Erro desconhecido";
+      
+      if (errorMessage.includes("fetch failed")) {
+        errorMessage = "Erro de conexao com o servidor. Tente novamente.";
+      } else if (errorMessage.includes("413")) {
+        errorMessage = "Arquivo muito grande. Maximo: 100MB";
+      } else if (errorMessage.includes("timeout")) {
+        errorMessage = "Transcricao demorou muito. Tente com arquivo menor.";
+      }
+      
+      toast.error(`Erro ao processar arquivo: ${errorMessage}`);
     } finally {
       setIsLoading(false);
       setUploadProgress(0);
