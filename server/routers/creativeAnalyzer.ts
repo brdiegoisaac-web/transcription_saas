@@ -1,6 +1,7 @@
-import { protectedProcedure } from "../_core/trpc";
 import { z } from "zod";
 import { Groq } from "groq-sdk";
+import { calculateCreativeScores } from "../creativeScoring";
+import { protectedProcedure } from "../_core/trpc";
 
 /**
  * Analisador de Criativos com Groq Llama 3.1 70B
@@ -153,6 +154,28 @@ export const creativeAnalyzerRouter = {
 
         try {
           const analysis = JSON.parse(cleanJson);
+          
+          // Calcular scores objetivos baseados em regras
+          const objectiveScores = calculateCreativeScores(input.text, input.segments);
+          
+          // Substituir scores da IA pelos scores objetivos
+          analysis.scores = {
+            hook_power: objectiveScores.hook_power,
+            clareza_mensagem: objectiveScores.clareza_mensagem,
+            intensidade_emocional: objectiveScores.intensidade_emocional,
+            especificidade: objectiveScores.especificidade,
+            cta_strength: objectiveScores.cta_strength,
+            retencao_estimada: objectiveScores.retencao_estimada,
+            score_geral: objectiveScores.score_geral,
+          };
+          
+          // Adicionar informacao de que eh sugestao
+          (analysis as any).scores_info = {
+            tipo: "sugestao",
+            descricao: "Scores calculados automaticamente com base em analise tecnica. Sao sugestoes, nao verdades absolutas.",
+            detalhes: objectiveScores.detalhes,
+          };
+          
           return {
             success: true,
             analysis,

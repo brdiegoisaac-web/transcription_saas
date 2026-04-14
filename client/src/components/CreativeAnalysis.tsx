@@ -80,10 +80,17 @@ interface Variacao {
   texto: string;
 }
 
+interface ScoresInfo {
+  tipo: string;
+  descricao: string;
+  detalhes: Record<string, string>;
+}
+
 interface AnalysisData {
   estrutura: BlocoEstrutura[];
   engenharia_reversa: EngenhariaReversa;
   scores: Scores;
+  scores_info?: ScoresInfo;
   melhorias: Melhoria[];
   variacoes_hook: Variacao[];
   variacoes_cta: Variacao[];
@@ -402,6 +409,17 @@ export default function CreativeAnalysis({ text, segments }: CreativeAnalysisPro
           </TabsContent>
 
           <TabsContent value="scores" className="mt-4">
+            {analysis.scores_info && (
+              <Card className="p-3 sm:p-4 mb-4 bg-amber-50 border-amber-200">
+                <div className="flex items-start gap-2">
+                  <Lightbulb className="w-4 h-4 text-amber-600 mt-0.5 flex-shrink-0" />
+                  <div>
+                    <h4 className="text-xs sm:text-sm font-semibold text-amber-900 mb-1">💡 Sugestão de Scores</h4>
+                    <p className="text-xs text-amber-800">{analysis.scores_info.descricao}</p>
+                  </div>
+                </div>
+              </Card>
+            )}
             <Card className="p-4 sm:p-6">
               <div className="space-y-4">
                 {analysis.scores && (

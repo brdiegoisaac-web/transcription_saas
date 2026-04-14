@@ -259,3 +259,4 @@ Quer que eu comece pela **FASE 1**?
 - [x] Erro ao analisar criativo - CORRIGIDO: usar tRPC em vez de fetch direto
 - [x] Adicionar botão de copiar análise de criativo (texto formatado)
 - [x] Adicionar botão de baixar análise de criativo em PDF
+- [x] Implementar sistema de scoring objetivo com regras claras (indicado como "sugestão")
