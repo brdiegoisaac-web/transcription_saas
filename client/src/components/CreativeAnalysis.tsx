@@ -383,7 +383,7 @@ export default function CreativeAnalysis({ text, segments }: CreativeAnalysisPro
           </TabsList>
 
           <TabsContent value="estrutura" className="mt-4">
-            <div className="space-y-2 sm:space-y-3">
+            <div className="space-y-1.5">
               {analysis.estrutura && analysis.estrutura.length > 0 ? (
                 analysis.estrutura.map((bloco, idx) => (
                   <StructureBlock key={idx} bloco={bloco} />
@@ -441,89 +441,64 @@ export default function CreativeAnalysis({ text, segments }: CreativeAnalysisPro
 
           <TabsContent value="engenharia" className="mt-4">
             {analysis.engenharia_reversa && (
-              <div className="space-y-3">
-                <Card className="p-4">
-                  <h4 className="text-xs font-medium text-muted-foreground uppercase tracking-wider mb-2">
-                    Big Idea
-                  </h4>
-                  <p className="text-sm sm:text-base font-semibold text-foreground">
-                    {analysis.engenharia_reversa.big_idea}
-                  </p>
-                </Card>
+              <div className="space-y-2">
+                <div className="bg-card border border-border rounded-lg p-3">
+                  <h4 className="text-xs font-semibold text-muted-foreground uppercase tracking-wider mb-1">Big Idea</h4>
+                  <p className="text-sm font-semibold text-foreground">{analysis.engenharia_reversa.big_idea}</p>
+                </div>
 
-                <Card className="p-4">
-                  <h4 className="text-xs font-medium text-muted-foreground uppercase tracking-wider mb-2">
-                    Mecanismo Único
-                  </h4>
-                  <p className="text-sm text-foreground">
-                    {analysis.engenharia_reversa.mecanismo_unico}
-                  </p>
-                </Card>
+                <div className="bg-card border border-border rounded-lg p-3">
+                  <h4 className="text-xs font-semibold text-muted-foreground uppercase tracking-wider mb-1">Mecanismo Único</h4>
+                  <p className="text-sm text-foreground">{analysis.engenharia_reversa.mecanismo_unico}</p>
+                </div>
 
-                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-                  <Card className="p-4">
-                    <h4 className="text-xs font-medium text-muted-foreground uppercase tracking-wider mb-2">
-                      Emoção Principal
-                    </h4>
-                    <Badge className="text-sm">{analysis.engenharia_reversa.emocao_principal}</Badge>
-                  </Card>
-
-                  <Card className="p-4">
-                    <h4 className="text-xs font-medium text-muted-foreground uppercase tracking-wider mb-2">
-                      Ângulo Principal
-                    </h4>
-                    <Badge variant="secondary" className="text-sm">
-                      {analysis.engenharia_reversa.angulo_principal}
-                    </Badge>
-                  </Card>
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
+                  <div className="bg-card border border-border rounded-lg p-3">
+                    <h4 className="text-xs font-semibold text-muted-foreground uppercase tracking-wider mb-1">Emoção Principal</h4>
+                    <Badge className="text-xs">{analysis.engenharia_reversa.emocao_principal}</Badge>
+                  </div>
+                  <div className="bg-card border border-border rounded-lg p-3">
+                    <h4 className="text-xs font-semibold text-muted-foreground uppercase tracking-wider mb-1">Ângulo Principal</h4>
+                    <Badge variant="secondary" className="text-xs">{analysis.engenharia_reversa.angulo_principal}</Badge>
+                  </div>
                 </div>
               </div>
             )}
           </TabsContent>
 
           <TabsContent value="melhorias" className="mt-4">
-            <div className="space-y-3">
+            <div className="space-y-2">
               {analysis.melhorias && analysis.melhorias.length > 0 ? (
                 analysis.melhorias.map((melhoria, idx) => {
                   const config = BLOCK_CONFIG[melhoria.bloco] || BLOCK_CONFIG.hook;
                   return (
-                    <Card key={idx} className="p-4">
-                      <div className="flex items-center gap-2 mb-3">
+                    <div key={idx} className="border border-border rounded-lg p-3">
+                      <div className="flex items-center gap-2 mb-2">
                         <span className={config.color}>{config.icon}</span>
-                        <Badge variant="outline" className="text-xs">
-                          {config.label}
-                        </Badge>
+                        <Badge variant="outline" className="text-xs">{config.label}</Badge>
                       </div>
-
-                      <div className="space-y-2">
+                      <div className="space-y-1.5 text-sm">
                         <div>
-                          <span className="text-xs font-medium text-red-500 uppercase">Problema</span>
-                          <p className="text-sm text-foreground">{melhoria.problema}</p>
+                          <span className="text-xs font-semibold text-red-500 uppercase">Problema:</span>
+                          <p className="text-foreground">{melhoria.problema}</p>
                         </div>
                         <div>
-                          <span className="text-xs font-medium text-green-500 uppercase">Sugestão</span>
-                          <p className="text-sm text-foreground">{melhoria.sugestao}</p>
+                          <span className="text-xs font-semibold text-green-500 uppercase">Sugestão:</span>
+                          <p className="text-foreground">{melhoria.sugestao}</p>
                         </div>
                         {melhoria.exemplo && (
-                          <div className="bg-muted/50 rounded-lg p-3 mt-2">
-                            <div className="flex items-center justify-between mb-1">
-                              <span className="text-xs font-medium text-primary uppercase">
-                                Exemplo Reescrito
-                              </span>
-                              <Button
-                                variant="ghost"
-                                size="sm"
-                                className="h-7 w-7 p-0"
-                                onClick={() => handleCopy(melhoria.exemplo)}
-                              >
+                          <div className="bg-muted/50 rounded p-2 mt-1">
+                            <div className="flex items-center justify-between mb-0.5">
+                              <span className="text-xs font-semibold text-primary uppercase">Exemplo</span>
+                              <Button variant="ghost" size="sm" className="h-6 w-6 p-0" onClick={() => handleCopy(melhoria.exemplo)}>
                                 <Copy className="w-3 h-3" />
                               </Button>
                             </div>
-                            <p className="text-sm text-foreground italic">"{melhoria.exemplo}"</p>
+                            <p className="text-xs text-foreground italic">"{melhoria.exemplo}"</p>
                           </div>
                         )}
                       </div>
-                    </Card>
+                    </div>
                   );
                 })
               ) : (
@@ -535,12 +510,10 @@ export default function CreativeAnalysis({ text, segments }: CreativeAnalysisPro
           </TabsContent>
 
           <TabsContent value="variacoes" className="mt-4">
-            <div className="space-y-4">
-              <Card className="p-4">
-                <h4 className="text-sm font-semibold text-foreground mb-3">
-                  Gerar Novas Versões do Criativo
-                </h4>
-                <div className="flex flex-wrap gap-2 mb-4">
+            <div className="space-y-2">
+              <div className="border border-border rounded-lg p-3">
+                <h4 className="text-sm font-semibold text-foreground mb-2">Gerar Novas Versões</h4>
+                <div className="flex flex-wrap gap-1.5 mb-3">
                   {(["completo", "hook", "cta", "emocional"] as const).map((focus) => {
                     const labels: Record<string, string> = {
                       completo: "Reescrita Completa",
@@ -578,12 +551,12 @@ export default function CreativeAnalysis({ text, segments }: CreativeAnalysisPro
                     </>
                   )}
                 </Button>
-              </Card>
+              </div>
 
               {variations.length > 0 && (
-                <div className="space-y-3">
+                <div className="space-y-2">
                   {variations.map((variation, idx) => (
-                    <Card key={idx} className="p-4">
+                    <div key={idx} className="border border-border rounded-lg p-3">
                       <div className="flex items-start justify-between gap-2 mb-3">
                         <div>
                           <h4 className="text-sm font-semibold text-foreground">
@@ -618,7 +591,7 @@ export default function CreativeAnalysis({ text, segments }: CreativeAnalysisPro
                           {variation.diferencial}
                         </p>
                       )}
-                    </Card>
+                    </div>
                   ))}
                 </div>
               )}
