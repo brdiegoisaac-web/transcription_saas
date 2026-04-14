@@ -14,6 +14,7 @@ import {
   Eye,
   MessageSquare,
   Lightbulb,
+  Download,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
@@ -22,6 +23,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Progress } from "@/components/ui/progress";
 import { toast } from "sonner";
 import { trpc } from "@/lib/trpc";
+import { generateFormattedAnalysisText, generateAnalysisPDF } from "@/lib/analysisExport";
 
 interface Segment {
   id: number;
@@ -175,6 +177,7 @@ export default function CreativeAnalysis({ text, segments }: CreativeAnalysisPro
   const [analysis, setAnalysis] = useState<AnalysisData | null>(null);
   const [isAnalyzing, setIsAnalyzing] = useState(false);
   const [isGenerating, setIsGenerating] = useState(false);
+  const [isExporting, setIsExporting] = useState(false);
   const [variationFocus, setVariationFocus] = useState<"completo" | "hook" | "cta" | "emocional">("completo");
   const [variations, setVariations] = useState<GeneratedVariation[]>([]);
 
@@ -240,6 +243,40 @@ export default function CreativeAnalysis({ text, segments }: CreativeAnalysisPro
     toast.success("Copiado!");
   };
 
+  const handleCopyAnalysis = async () => {
+    if (!analysis) return;
+    try {
+      const text = generateFormattedAnalysisText(analysis);
+      await navigator.clipboard.writeText(text);
+      toast.success("Análise copiada para a área de transferência!");
+    } catch (error) {
+      console.error("Erro ao copiar análise:", error);
+      toast.error("Erro ao copiar análise");
+    }
+  };
+
+  const handleDownloadPDF = async () => {
+    if (!analysis) return;
+    setIsExporting(true);
+    try {
+      const blob = await generateAnalysisPDF(analysis);
+      const url = URL.createObjectURL(blob);
+      const link = document.createElement("a");
+      link.href = url;
+      link.download = `analise-criativo-${new Date().toISOString().split('T')[0]}.pdf`;
+      document.body.appendChild(link);
+      link.click();
+      document.body.removeChild(link);
+      URL.revokeObjectURL(url);
+      toast.success("PDF baixado com sucesso!");
+    } catch (error) {
+      console.error("Erro ao gerar PDF:", error);
+      toast.error("Erro ao gerar PDF");
+    } finally {
+      setIsExporting(false);
+    }
+  };
+
   if (!analysis) {
   return (
     <div className="border-t border-blue-100 bg-white">
@@ -287,7 +324,7 @@ export default function CreativeAnalysis({ text, segments }: CreativeAnalysisPro
             </h2>
             <p className="text-xs text-gray-500 mt-1">Estrutura, scores e sugestões de melhoria</p>
           </div>
-          <div className="flex items-center gap-3">
+          <div className="flex items-center gap-2 sm:gap-3">
             <div className="text-right">
               <p className="text-xs text-gray-500 uppercase tracking-wide">Score Geral</p>
               <p className="text-2xl font-semibold text-blue-900">{analysis.scores?.score_geral || 0}/10</p>
@@ -296,8 +333,25 @@ export default function CreativeAnalysis({ text, segments }: CreativeAnalysisPro
               onClick={handleAnalyze}
               disabled={isAnalyzing}
               className="p-2 hover:bg-blue-50 rounded-lg transition-colors"
+              title="Reanalizar"
             >
               {isAnalyzing ? <Loader2 className="w-4 h-4 animate-spin" /> : <Sparkles className="w-4 h-4 text-blue-900" />}
+            </button>
+            <button
+              onClick={handleCopyAnalysis}
+              disabled={isExporting}
+              className="p-2 hover:bg-blue-50 rounded-lg transition-colors"
+              title="Copiar análise"
+            >
+              <Copy className="w-4 h-4 text-blue-900" />
+            </button>
+            <button
+              onClick={handleDownloadPDF}
+              disabled={isExporting}
+              className="p-2 hover:bg-blue-50 rounded-lg transition-colors"
+              title="Baixar PDF"
+            >
+              {isExporting ? <Loader2 className="w-4 h-4 animate-spin" /> : <Download className="w-4 h-4 text-blue-900" />}
             </button>
           </div>
         </div>
