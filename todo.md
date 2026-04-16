@@ -261,3 +261,4 @@ Quer que eu comece pela **FASE 1**?
 - [x] Adicionar botão de baixar análise de criativo em PDF
 - [x] Implementar sistema de scoring objetivo com regras claras (indicado como "sugestão")
 - [x] Melhorar organização e formatação do texto de análise (menos linhas em branco, mais compacto)
+- [x] Implementar funcionalidade de renomear/atualizar nome do arquivo ou criativo

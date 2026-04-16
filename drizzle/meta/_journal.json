@@ -15,6 +15,13 @@
       "when": 1774393487212,
       "tag": "0001_premium_sinister_six",
       "breakpoints": true
+    },
+    {
+      "idx": 2,
+      "version": "5",
+      "when": 1776306737711,
+      "tag": "0002_neat_joseph",
+      "breakpoints": true
     }
   ]
 }

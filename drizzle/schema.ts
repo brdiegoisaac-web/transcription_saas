@@ -32,6 +32,7 @@ export const transcriptions = mysqlTable("transcriptions", {
   id: int("id").autoincrement().primaryKey(),
   userId: int("userId").notNull(),
   fileName: varchar("fileName", { length: 255 }).notNull(),
+  name: varchar("name", { length: 255 }), // Nome customizado do criativo/análise
   originalText: text("originalText").notNull(),
   segments: text("segments").notNull(), // JSON string com segmentos
   inputLanguage: varchar("inputLanguage", { length: 10 }).notNull(), // pt, en, es

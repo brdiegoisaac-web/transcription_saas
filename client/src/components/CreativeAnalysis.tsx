@@ -15,6 +15,7 @@ import {
   MessageSquare,
   Lightbulb,
   Download,
+  Edit,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
@@ -187,6 +188,12 @@ export default function CreativeAnalysis({ text, segments }: CreativeAnalysisPro
   const [isExporting, setIsExporting] = useState(false);
   const [variationFocus, setVariationFocus] = useState<"completo" | "hook" | "cta" | "emocional">("completo");
   const [variations, setVariations] = useState<GeneratedVariation[]>([]);
+  const [isEditingName, setIsEditingName] = useState(false);
+  const [customName, setCustomName] = useState("");
+  const [transcriptionId, setTranscriptionId] = useState<number | null>(null);
+  const [isSavingName, setIsSavingName] = useState(false);
+
+  const updateNameMutation = trpc.history.updateName.useMutation();
 
   const analyzeMutation = trpc.creativeAnalyzer.analyzeCreative.useMutation();
 
@@ -284,6 +291,28 @@ export default function CreativeAnalysis({ text, segments }: CreativeAnalysisPro
     }
   };
 
+  const handleSaveName = async () => {
+    if (!transcriptionId || !customName.trim()) {
+      toast.error("Nome inválido");
+      return;
+    }
+
+    setIsSavingName(true);
+    try {
+      await updateNameMutation.mutateAsync({
+        id: transcriptionId,
+        name: customName.trim(),
+      });
+      toast.success("Nome salvo com sucesso!");
+      setIsEditingName(false);
+    } catch (error) {
+      console.error("Erro ao salvar nome:", error);
+      toast.error("Erro ao salvar nome");
+    } finally {
+      setIsSavingName(false);
+    }
+  };
+
   if (!analysis) {
   return (
     <div className="border-t border-blue-100 bg-white">
@@ -325,11 +354,46 @@ export default function CreativeAnalysis({ text, segments }: CreativeAnalysisPro
     <div className="border-t border-blue-100 bg-white">
       <div className="px-4 sm:px-6 py-6 sm:py-8">
         <div className="flex items-center justify-between mb-6 sm:mb-8">
-          <div>
-            <h2 className="text-base sm:text-lg font-semibold text-blue-900">
-              Análise do Criativo
-            </h2>
-            <p className="text-xs text-gray-500 mt-1">Estrutura, scores e sugestões de melhoria</p>
+          <div className="flex-1">
+            {isEditingName ? (
+              <div className="flex items-center gap-2 mb-2">
+                <input
+                  type="text"
+                  value={customName}
+                  onChange={(e) => setCustomName(e.target.value)}
+                  placeholder="Nome do criativo..."
+                  className="flex-1 px-3 py-2 border border-blue-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
+                  autoFocus
+                />
+                <button
+                  onClick={handleSaveName}
+                  disabled={isSavingName}
+                  className="px-3 py-2 bg-blue-900 text-white rounded-lg text-xs font-medium hover:bg-blue-800 disabled:opacity-50"
+                >
+                  {isSavingName ? "Salvando..." : "Salvar"}
+                </button>
+                <button
+                  onClick={() => setIsEditingName(false)}
+                  className="px-3 py-2 border border-gray-300 rounded-lg text-xs font-medium hover:bg-gray-50"
+                >
+                  Cancelar
+                </button>
+              </div>
+            ) : (
+              <div className="flex items-center gap-2 mb-2">
+                <h2 className="text-base sm:text-lg font-semibold text-blue-900">
+                  {customName || "Análise do Criativo"}
+                </h2>
+                <button
+                  onClick={() => setIsEditingName(true)}
+                  className="p-1 hover:bg-blue-50 rounded transition-colors"
+                  title="Renomear"
+                >
+                  <Edit className="w-4 h-4 text-blue-900" />
+                </button>
+              </div>
+            )}
+            <p className="text-xs text-gray-500">Estrutura, scores e sugestões de melhoria</p>
           </div>
           <div className="flex items-center gap-2 sm:gap-3">
             <div className="text-right">

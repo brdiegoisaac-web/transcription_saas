@@ -1,0 +1,1 @@
+ALTER TABLE `transcriptions` ADD `name` varchar(255);

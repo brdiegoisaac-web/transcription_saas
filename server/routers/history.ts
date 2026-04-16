@@ -1,6 +1,6 @@
 import { z } from "zod";
 import { protectedProcedure, router } from "../_core/trpc";
-import { saveTranscription, getUserTranscriptions, getTranscriptionById, deleteTranscription } from "../db";
+import { saveTranscription, getUserTranscriptions, getTranscriptionById, deleteTranscription, updateTranscriptionName } from "../db";
 
 export const historyRouter = router({
   /**
@@ -90,6 +90,16 @@ export const historyRouter = router({
         createdAt: transcription.createdAt,
         updatedAt: transcription.updatedAt,
       };
+    }),
+
+  /**
+   * Atualizar nome de uma transcrição
+   */
+  updateName: protectedProcedure
+    .input(z.object({ id: z.number(), name: z.string().min(1).max(255) }))
+    .mutation(async ({ ctx, input }) => {
+      const success = await updateTranscriptionName(input.id, ctx.user.id, input.name);
+      return { success };
     }),
 
   /**

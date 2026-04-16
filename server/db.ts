@@ -193,3 +193,28 @@ export async function deleteTranscription(id: number, userId: number): Promise<b
     return false;
   }
 }
+
+/**
+ * Atualizar nome de uma transcrição
+ */
+export async function updateTranscriptionName(id: number, userId: number, name: string): Promise<boolean> {
+  const db = await getDb();
+  if (!db) {
+    console.warn("[Database] Cannot update transcription: database not available");
+    return false;
+  }
+
+  try {
+    // Verificar permissão primeiro
+    const transcription = await getTranscriptionById(id, userId);
+    if (!transcription) {
+      return false;
+    }
+
+    await db.update(transcriptions).set({ name }).where(eq(transcriptions.id, id));
+    return true;
+  } catch (error) {
+    console.error("[Database] Failed to update transcription name:", error);
+    return false;
+  }
+}
