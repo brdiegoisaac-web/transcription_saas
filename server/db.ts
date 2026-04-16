@@ -100,9 +100,21 @@ export async function saveTranscription(transcription: InsertTranscription): Pro
   }
 
   try {
-    // Remover name se não for fornecido para evitar enviar 'default' como valor literal
-    const { name, ...dataWithoutName } = transcription;
-    const dataToInsert = name ? transcription : dataWithoutName;
+    // Construir objeto de inserção sem a coluna 'name' se não fornecida
+    const dataToInsert: any = {
+      userId: transcription.userId,
+      fileName: transcription.fileName,
+      originalText: transcription.originalText,
+      segments: transcription.segments,
+      inputLanguage: transcription.inputLanguage,
+      outputLanguage: transcription.outputLanguage,
+      duration: transcription.duration,
+    };
+    
+    // Adicionar name apenas se fornecido e não vazio
+    if (transcription.name && transcription.name.trim()) {
+      dataToInsert.name = transcription.name;
+    }
     
     const result = await db.insert(transcriptions).values(dataToInsert);
     const id = (result as any)[0]?.insertId;
