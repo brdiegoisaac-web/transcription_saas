@@ -1,0 +1,1 @@
+ALTER TABLE `transcriptions` MODIFY COLUMN `name` varchar(255) DEFAULT '';
