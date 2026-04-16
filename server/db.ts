@@ -100,7 +100,11 @@ export async function saveTranscription(transcription: InsertTranscription): Pro
   }
 
   try {
-    const result = await db.insert(transcriptions).values(transcription);
+    // Remover name se não for fornecido para evitar enviar 'default' como valor literal
+    const { name, ...dataWithoutName } = transcription;
+    const dataToInsert = name ? transcription : dataWithoutName;
+    
+    const result = await db.insert(transcriptions).values(dataToInsert);
     const id = (result as any)[0]?.insertId;
     if (id) {
       const saved = await db.select().from(transcriptions).where(eq(transcriptions.id, id as number)).limit(1);
