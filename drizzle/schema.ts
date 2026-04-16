@@ -44,3 +44,51 @@ export const transcriptions = mysqlTable("transcriptions", {
 
 export type Transcription = typeof transcriptions.$inferSelect;
 export type InsertTranscription = typeof transcriptions.$inferInsert;
+
+/**
+ * Categorias/Setores para organizar concorrentes
+ */
+export const categories = mysqlTable("categories", {
+  id: int("id").autoincrement().primaryKey(),
+  userId: int("userId").notNull(),
+  name: varchar("name", { length: 255 }).notNull(),
+  description: text("description"),
+  createdAt: timestamp("createdAt").defaultNow().notNull(),
+  updatedAt: timestamp("updatedAt").defaultNow().onUpdateNow().notNull(),
+});
+
+export type Category = typeof categories.$inferSelect;
+export type InsertCategory = typeof categories.$inferInsert;
+
+/**
+ * Concorrentes para espionagem
+ */
+export const competitors = mysqlTable("competitors", {
+  id: int("id").autoincrement().primaryKey(),
+  userId: int("userId").notNull(),
+  categoryId: int("categoryId").notNull(),
+  name: varchar("name", { length: 255 }).notNull(),
+  description: text("description"),
+  website: varchar("website", { length: 500 }),
+  adAccountUrl: varchar("adAccountUrl", { length: 500 }), // URL da conta de anúncios
+  notes: text("notes"),
+  createdAt: timestamp("createdAt").defaultNow().notNull(),
+  updatedAt: timestamp("updatedAt").defaultNow().onUpdateNow().notNull(),
+});
+
+export type Competitor = typeof competitors.$inferSelect;
+export type InsertCompetitor = typeof competitors.$inferInsert;
+
+/**
+ * Associação entre transcrições (criativos) e concorrentes
+ */
+export const competitorCreatives = mysqlTable("competitorCreatives", {
+  id: int("id").autoincrement().primaryKey(),
+  transcriptionId: int("transcriptionId").notNull(),
+  competitorId: int("competitorId").notNull(),
+  notes: text("notes"),
+  createdAt: timestamp("createdAt").defaultNow().notNull(),
+});
+
+export type CompetitorCreative = typeof competitorCreatives.$inferSelect;
+export type InsertCompetitorCreative = typeof competitorCreatives.$inferInsert;

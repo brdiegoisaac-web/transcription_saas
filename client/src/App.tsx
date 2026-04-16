@@ -8,6 +8,7 @@ import Home from "./pages/Home";
 import History from "./pages/History";
 import Login from "./pages/Login";
 import Profile from "./pages/Profile";
+import Competitors from "./pages/Competitors";
 import { useAuth } from "@/_core/hooks/useAuth";
 import { Loader2 } from "lucide-react";
 import { getLoginUrl } from "./const";
@@ -42,6 +43,9 @@ function Router() {
       </Route>
       <Route path={"/profile"}>
         {() => <ProtectedRoute component={Profile} />}
+      </Route>
+      <Route path={"/competitors"}>
+        {() => <ProtectedRoute component={Competitors} />}
       </Route>
       <Route path={"/404"} component={NotFound} />
       {/* Final fallback route */}

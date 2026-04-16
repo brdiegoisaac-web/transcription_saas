@@ -233,12 +233,6 @@ export default function Home() {
             <h1 className="text-xl font-bold text-foreground">Transcription SaaS</h1>
           </div>
           <nav className="flex items-center gap-6">
-            <a href="#" className="text-sm text-muted-foreground hover:text-foreground transition">
-              Preços
-            </a>
-            <a href="#" className="text-sm text-muted-foreground hover:text-foreground transition">
-              Suporte
-            </a>
             <HistoryButton />
             <ProfileButton />
             <Button variant="outline" size="sm">

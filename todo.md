@@ -262,3 +262,10 @@ Quer que eu comece pela **FASE 1**?
 - [x] Implementar sistema de scoring objetivo com regras claras (indicado como "sugestão")
 - [x] Melhorar organização e formatação do texto de análise (menos linhas em branco, mais compacto)
 - [x] Implementar funcionalidade de renomear/atualizar nome do arquivo ou criativo
+
+### Sistema de Organização de Concorrentes
+- [x] Criar tabelas de concorrentes e categorias no banco de dados
+- [x] Implementar endpoints tRPC para CRUD de concorrentes e categorias
+- [x] Criar UI para gerenciar concorrentes e categorias
+- [ ] Associar criativos a concorrentes
+- [x] Remover abas de "Preços" e "Suporte" da navegação

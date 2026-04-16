@@ -1,6 +1,6 @@
-import { eq, desc } from "drizzle-orm";
+import { eq, desc, and } from "drizzle-orm";
 import { drizzle } from "drizzle-orm/mysql2";
-import { InsertUser, users, transcriptions, InsertTranscription, Transcription } from "../drizzle/schema";
+import { InsertUser, users, transcriptions, InsertTranscription, Transcription, categories, competitors, competitorCreatives } from "../drizzle/schema";
 import { ENV } from './_core/env';
 
 let _db: ReturnType<typeof drizzle> | null = null;
@@ -216,5 +216,163 @@ export async function updateTranscriptionName(id: number, userId: number, name: 
   } catch (error) {
     console.error("[Database] Failed to update transcription name:", error);
     return false;
+  }
+}
+
+
+/**
+ * Funções para Categorias
+ */
+export async function createCategory(userId: number, name: string, description?: string) {
+  const db = await getDb();
+  if (!db) {
+    console.warn("[Database] Cannot create category: database not available");
+    return null;
+  }
+
+  try {
+    const result = await db.insert(categories).values({
+      userId,
+      name,
+      description,
+    });
+    const id = (result as any)[0]?.insertId;
+    if (id) {
+      const saved = await db.select().from(categories).where(eq(categories.id, id as number)).limit(1);
+      return saved.length > 0 ? saved[0] : null;
+    }
+    return null;
+  } catch (error) {
+    console.error("[Database] Failed to create category:", error);
+    throw error;
+  }
+}
+
+export async function getUserCategories(userId: number) {
+  const db = await getDb();
+  if (!db) {
+    console.warn("[Database] Cannot get categories: database not available");
+    return [];
+  }
+
+  try {
+    return await db.select().from(categories).where(eq(categories.userId, userId));
+  } catch (error) {
+    console.error("[Database] Failed to get categories:", error);
+    return [];
+  }
+}
+
+/**
+ * Funções para Concorrentes
+ */
+export async function createCompetitor(userId: number, categoryId: number, name: string, data: any) {
+  const db = await getDb();
+  if (!db) {
+    console.warn("[Database] Cannot create competitor: database not available");
+    return null;
+  }
+
+  try {
+    const result = await db.insert(competitors).values({
+      userId,
+      categoryId,
+      name,
+      description: data.description,
+      website: data.website,
+      adAccountUrl: data.adAccountUrl,
+      notes: data.notes,
+    });
+    const id = (result as any)[0]?.insertId;
+    if (id) {
+      const saved = await db.select().from(competitors).where(eq(competitors.id, id as number)).limit(1);
+      return saved.length > 0 ? saved[0] : null;
+    }
+    return null;
+  } catch (error) {
+    console.error("[Database] Failed to create competitor:", error);
+    throw error;
+  }
+}
+
+export async function getCategoryCompetitors(categoryId: number, userId: number) {
+  const db = await getDb();
+  if (!db) {
+    console.warn("[Database] Cannot get competitors: database not available");
+    return [];
+  }
+
+  try {
+    return await db.select().from(competitors).where(
+      and(eq(competitors.categoryId, categoryId), eq(competitors.userId, userId))
+    );
+  } catch (error) {
+    console.error("[Database] Failed to get competitors:", error);
+    return [];
+  }
+}
+
+export async function deleteCompetitor(id: number, userId: number) {
+  const db = await getDb();
+  if (!db) {
+    console.warn("[Database] Cannot delete competitor: database not available");
+    return false;
+  }
+
+  try {
+    const competitor = await db.select().from(competitors).where(
+      and(eq(competitors.id, id), eq(competitors.userId, userId))
+    ).limit(1);
+    
+    if (competitor.length === 0) return false;
+
+    await db.delete(competitors).where(eq(competitors.id, id));
+    return true;
+  } catch (error) {
+    console.error("[Database] Failed to delete competitor:", error);
+    return false;
+  }
+}
+
+/**
+ * Funções para associar criativos a concorrentes
+ */
+export async function linkCreativeToCompetitor(transcriptionId: number, competitorId: number, notes?: string) {
+  const db = await getDb();
+  if (!db) {
+    console.warn("[Database] Cannot link creative: database not available");
+    return null;
+  }
+
+  try {
+    const result = await db.insert(competitorCreatives).values({
+      transcriptionId,
+      competitorId,
+      notes,
+    });
+    const id = (result as any)[0]?.insertId;
+    if (id) {
+      const saved = await db.select().from(competitorCreatives).where(eq(competitorCreatives.id, id as number)).limit(1);
+      return saved.length > 0 ? saved[0] : null;
+    }
+    return null;
+  } catch (error) {
+    console.error("[Database] Failed to link creative:", error);
+    throw error;
+  }
+}
+
+export async function getCompetitorCreatives(competitorId: number) {
+  const db = await getDb();
+  if (!db) {
+    console.warn("[Database] Cannot get competitor creatives: database not available");
+    return [];
+  }
+
+  try {
+    return await db.select().from(competitorCreatives).where(eq(competitorCreatives.competitorId, competitorId));
+  } catch (error) {
+    console.error("[Database] Failed to get competitor creatives:", error);
+    return [];
   }
 }
