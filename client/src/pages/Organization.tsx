@@ -278,8 +278,8 @@ export default function Competitors() {
         <div className="max-w-4xl mx-auto">
           <div className="flex items-center justify-between mb-8">
             <div>
-              <h2 className="text-3xl font-bold text-foreground">Espionagem de Concorrentes</h2>
-              <p className="text-muted-foreground mt-2">Organize seus concorrentes por categoria e acompanhe seus criativos</p>
+              <h1 className="text-3xl font-bold">Organização de Criativos</h1>
+              <p className="text-gray-600">Organize seus criativos por concorrente e categoria para melhor análise</p>
             </div>
             <Button
               onClick={() => setShowCategoryForm(true)}

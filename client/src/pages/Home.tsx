@@ -32,11 +32,11 @@ interface Transcription {
   fileUrl?: string;
 }
 
-function HistoryButton() {
+function OrganizationButton() {
   const [, setLocation] = useLocation();
   return (
-    <Button variant="outline" size="sm" onClick={() => setLocation("/history")}>
-      Histórico
+    <Button variant="outline" size="sm" onClick={() => setLocation("/organization")}>
+      Organização
     </Button>
   );
 }
@@ -233,7 +233,7 @@ export default function Home() {
             <h1 className="text-xl font-bold text-foreground">Transcription SaaS</h1>
           </div>
           <nav className="flex items-center gap-6">
-            <HistoryButton />
+            <OrganizationButton />
             <ProfileButton />
             <Button variant="outline" size="sm">
               Entrar

@@ -269,3 +269,6 @@ Quer que eu comece pela **FASE 1**?
 - [x] Criar UI para gerenciar concorrentes e categorias
 - [ ] Associar criativos a concorrentes
 - [x] Remover abas de "Preços" e "Suporte" da navegação
+- [x] Renomear página Competitors para Organization
+- [x] Remover aba Histórico da navegação
+- [x] Atualizar rotas no App.tsx
