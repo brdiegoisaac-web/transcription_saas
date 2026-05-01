@@ -9,6 +9,7 @@ import History from "./pages/History";
 import Login from "./pages/Login";
 import Profile from "./pages/Profile";
 import Organization from "./pages/Organization";
+import CompetitorDetail from "./pages/CompetitorDetail";
 import { useAuth } from "@/_core/hooks/useAuth";
 import { Loader2 } from "lucide-react";
 import { getLoginUrl } from "./const";
@@ -43,6 +44,12 @@ function Router() {
       </Route>
       <Route path={"/organization"}>
         {() => <ProtectedRoute component={Organization} />}
+      </Route>
+      <Route path={"/competitor/:competitorId"}>
+        {() => <ProtectedRoute component={CompetitorDetail} />}
+      </Route>
+      <Route path={"/history"}>
+        {() => <ProtectedRoute component={History} />}
       </Route>
       <Route path={"/404"} component={NotFound} />
       {/* Final fallback route */}

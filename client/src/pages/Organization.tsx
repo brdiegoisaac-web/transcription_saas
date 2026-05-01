@@ -24,7 +24,22 @@ interface Competitor {
   createdAt: Date;
 }
 
+function CategoryCardWithCompetitors({ category, onAddCompetitor, onDeleteCompetitor }: any) {
+  const competitorsQuery = trpc.competitors.listCompetitors.useQuery({ categoryId: category.id });
+  const competitors = competitorsQuery.data || [];
+
+  return (
+    <CategoryCard
+      category={category}
+      competitors={competitors}
+      onAddCompetitor={onAddCompetitor}
+      onDeleteCompetitor={onDeleteCompetitor}
+    />
+  );
+}
+
 function CategoryCard({ category, competitors, onAddCompetitor, onDeleteCompetitor }: any) {
+  const [, setLocation] = useLocation();
   const [expanded, setExpanded] = useState(false);
   const [showForm, setShowForm] = useState(false);
   const [formData, setFormData] = useState({
@@ -87,10 +102,11 @@ function CategoryCard({ category, competitors, onAddCompetitor, onDeleteCompetit
           {competitors.map((competitor: Competitor) => (
             <div
               key={competitor.id}
-              className="flex items-start justify-between p-4 bg-secondary/50 rounded-lg border border-border"
+              className="flex items-start justify-between p-4 bg-secondary/50 rounded-lg border border-border cursor-pointer hover:bg-secondary/70 transition group"
+              onClick={() => setLocation(`/competitor/${competitor.id}`)}
             >
               <div className="flex-1">
-                <h4 className="font-medium text-foreground">{competitor.name}</h4>
+                <h4 className="font-medium text-foreground group-hover:text-primary transition">{competitor.name}</h4>
                 {competitor.description && (
                   <p className="text-sm text-muted-foreground mt-1">{competitor.description}</p>
                 )}
@@ -121,7 +137,10 @@ function CategoryCard({ category, competitors, onAddCompetitor, onDeleteCompetit
                 )}
               </div>
               <button
-                onClick={() => onDeleteCompetitor(competitor.id)}
+                onClick={(e) => {
+                  e.stopPropagation();
+                  onDeleteCompetitor(competitor.id);
+                }}
                 className="p-2 hover:bg-destructive/10 rounded transition text-destructive"
               >
                 <Trash2 className="w-4 h-4" />
@@ -205,13 +224,11 @@ export default function Competitors() {
   const [showCategoryForm, setShowCategoryForm] = useState(false);
   const [categoryName, setCategoryName] = useState("");
   const [categoryDescription, setCategoryDescription] = useState("");
+  const [competitorsByCategory, setCompetitorsByCategory] = useState<Record<number, any[]>>({});
 
   const categoriesQuery = trpc.competitors.listCategories.useQuery();
-  const competitorsQuery = trpc.competitors.listCompetitors.useQuery(
-    { categoryId: 0 },
-    { enabled: false }
-  );
   const createCategoryMutation = trpc.competitors.createCategory.useMutation();
+  const utils = trpc.useUtils();
 
   const handleCreateCategory = async () => {
     if (!categoryName.trim()) {
@@ -340,12 +357,23 @@ export default function Competitors() {
           ) : (
             <div className="space-y-4">
               {categories.map((category) => (
-                <CategoryCard
+                <CategoryCardWithCompetitors
                   key={category.id}
                   category={category}
-                  competitors={[]}
-                  onAddCompetitor={() => categoriesQuery.refetch()}
-                  onDeleteCompetitor={() => categoriesQuery.refetch()}
+                  onAddCompetitor={() => {
+                    categoriesQuery.refetch();
+                    setCompetitorsByCategory(prev => ({
+                      ...prev,
+                      [category.id]: []
+                    }));
+                  }}
+                  onDeleteCompetitor={() => {
+                    categoriesQuery.refetch();
+                    setCompetitorsByCategory(prev => ({
+                      ...prev,
+                      [category.id]: []
+                    }));
+                  }}
                 />
               ))}
             </div>

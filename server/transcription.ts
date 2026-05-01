@@ -191,7 +191,7 @@ async function tryGroqTranscription(
 
       // Fazer requisição para Groq API com timeout
       const controller = new AbortController();
-      const timeoutId = setTimeout(() => controller.abort(), 120000); // 120 segundos timeout
+      const timeoutId = setTimeout(() => controller.abort(), 300000); // 300 segundos (5 minutos) timeout
 
       try {
         const response = await fetch("https://api.groq.com/openai/v1/audio/transcriptions", {
@@ -217,7 +217,15 @@ async function tryGroqTranscription(
         const text = data.text || "";
         const segments = processTranscriptionSegments(text, data.segments || []);
 
-        console.log("[Transcription] Groq sucesso!");
+        // Verificar se a transcrição parece incompleta (muito curta para o tamanho do arquivo)
+        const estimatedDurationSeconds = (audioBuffer.length / 128000); // Estimativa baseada no tamanho
+        const lastSegmentEnd = segments.length > 0 ? segments[segments.length - 1].end : 0;
+        
+        if (lastSegmentEnd < estimatedDurationSeconds * 0.7) {
+          console.warn(`[Transcription] Transcrição pode estar incompleta: ${lastSegmentEnd}s de ~${estimatedDurationSeconds}s`);
+        }
+
+        console.log("[Transcription] Groq sucesso! Segmentos:", segments.length, "Duração:", lastSegmentEnd, "s");
         return {
           success: true,
           data: {
