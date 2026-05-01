@@ -215,7 +215,7 @@ async function tryGroqTranscription(
 
         // Processar resposta e gerar segmentos
         const text = data.text || "";
-        const segments = processTranscriptionSegments(text, data.segments || []);
+        const segments = processTranscriptionSegments(text, data.segments || [], audioBuffer, fileName);
 
         // Verificar se a transcrição parece incompleta (muito curta para o tamanho do arquivo)
         const estimatedDurationSeconds = (audioBuffer.length / 128000); // Estimativa baseada no tamanho
@@ -279,16 +279,13 @@ async function tryManusTranscription(
   try {
     writeFileSync(tmpPath, audioBuffer);
 
-    // Usar o serviço de transcrição do Manus
-    // Nota: transcribeAudio espera uma URL, então precisamos fazer upload primeiro
-    // Para agora, vamos usar a API diretamente
-
-    // Criar FormData para enviar para Manus
+    // Usar o serviço de transcrição do Manus que retorna segmentos com timestamps
     const formData = new FormData();
     const blob = new Blob([Buffer.from(audioBuffer)], { type: "audio/mpeg" });
     formData.append("file", blob, fileName);
     formData.append("model", "whisper-1");
     formData.append("language", language);
+    formData.append("response_format", "verbose_json"); // Pedir formato verbose para ter timestamps
 
     const response = await fetch(`${ENV.forgeApiUrl}/v1/audio/transcriptions`, {
       method: "POST",
@@ -305,11 +302,11 @@ async function tryManusTranscription(
 
     const data = (await response.json()) as any;
 
-    // Processar resposta
+    // Processar resposta - Manus retorna segmentos com timestamps precisos
     const text = data.text || "";
-    const segments = processTranscriptionSegments(text, data.segments || []);
+    const segments = processTranscriptionSegments(text, data.segments || [], audioBuffer, fileName);
 
-    console.log("[Transcription] Manus API sucesso!");
+    console.log("[Transcription] Manus API sucesso! Segmentos:", segments.length, "Duração:", segments.length > 0 ? segments[segments.length - 1].end : 0, "s");
     return {
       text,
       segments,
@@ -333,11 +330,14 @@ async function tryManusTranscription(
  */
 function processTranscriptionSegments(
   fullText: string,
-  apiSegments: any[]
+  apiSegments: any[],
+  audioBuffer?: Buffer,
+  fileName?: string
 ): TranscriptionSegment[] {
   if (apiSegments.length === 0) {
     // Se não houver segmentos da API, dividir o texto em partes
-    return createDefaultSegments(fullText);
+    // Passar o audioBuffer e fileName para obter a duração real
+    return createDefaultSegments(fullText, audioBuffer, fileName);
   }
 
   // Mapear segmentos da API
@@ -352,18 +352,51 @@ function processTranscriptionSegments(
 
 /**
  * Criar segmentos padrão se a API não retornar segmentos
+ * Usa a duração real do arquivo de áudio
  */
-function createDefaultSegments(text: string): TranscriptionSegment[] {
+function createDefaultSegments(text: string, audioBuffer?: Buffer, fileName?: string): TranscriptionSegment[] {
+  // Obter duração real do áudio
+  let estimatedDurationSeconds = 30; // padrão
+  
+  if (audioBuffer && fileName) {
+    try {
+      // Salvar buffer temporário para obter duração
+      const tmpDir = os.tmpdir();
+      const tmpPath = path.join(tmpDir, `audio-${Date.now()}-${Math.random().toString(36).slice(2)}.mp3`);
+      writeFileSync(tmpPath, audioBuffer);
+      
+      try {
+        // Usar ffprobe para obter a duração real
+        const output = execSync(
+          `ffprobe -v error -show_entries format=duration -of default=noprint_wrappers=1:nokey=1:nokey=1 "${tmpPath}" 2>/dev/null`,
+          { encoding: 'utf-8', timeout: 5000 }
+        ).trim();
+        
+        const duration = parseFloat(output);
+        if (!isNaN(duration) && duration > 0) {
+          estimatedDurationSeconds = duration;
+          console.log(`[Transcription] Duração real do áudio: ${estimatedDurationSeconds.toFixed(2)}s`);
+        }
+      } finally {
+        try {
+          unlinkSync(tmpPath);
+        } catch {}
+      }
+    } catch (error) {
+      console.warn('[Transcription] Não foi possível obter duração real, usando estimativa:', error);
+    }
+  }
+  
   // Dividir texto em frases
   const sentences = text.match(/[^.!?]+[.!?]+/g) || [text];
   const segments: TranscriptionSegment[] = [];
 
+  // Distribuir o tempo total entre as frases
+  const timePerSentence = estimatedDurationSeconds / sentences.length;
   let currentTime = 0;
-  const wordsPerSecond = 2.5; // Estimativa de velocidade de fala
 
   sentences.forEach((sentence, idx) => {
-    const words = sentence.trim().split(/\s+/).length;
-    const duration = Math.max(2, words / wordsPerSecond); // Mínimo 2 segundos
+    const duration = timePerSentence;
 
     segments.push({
       id: idx,
