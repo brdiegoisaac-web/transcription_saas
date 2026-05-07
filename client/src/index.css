@@ -43,16 +43,16 @@
 }
 
 :root {
-  /* Paleta: Branco, Azul Escuro (#1e3a8a), Cinza */
-  --primary: #1e3a8a;
+  /* Paleta: Gradiente Azul-Laranja Criato */
+  --primary: #1e40af;
   --primary-foreground: #ffffff;
-  --sidebar-primary: #1e3a8a;
+  --sidebar-primary: #1e40af;
   --sidebar-primary-foreground: #ffffff;
-  --chart-1: #1e3a8a;
+  --chart-1: #1e40af;
   --chart-2: #2563eb;
-  --chart-3: #3b82f6;
-  --chart-4: #60a5fa;
-  --chart-5: #93c5fd;
+  --chart-3: #f97316;
+  --chart-4: #fb923c;
+  --chart-5: #fed7aa;
   --radius: 0.5rem;
   --background: #ffffff;
   --foreground: #1f2937;
@@ -64,25 +64,25 @@
   --secondary-foreground: #1f2937;
   --muted: #e5e7eb;
   --muted-foreground: #6b7280;
-  --accent: #1e3a8a;
+  --accent: #f97316;
   --accent-foreground: #ffffff;
   --destructive: #dc2626;
   --destructive-foreground: #ffffff;
   --border: #e5e7eb;
   --input: #f3f4f6;
-  --ring: #1e3a8a;
+  --ring: #1e40af;
   --sidebar: #ffffff;
   --sidebar-foreground: #1f2937;
-  --sidebar-accent: #1e3a8a;
+  --sidebar-accent: #f97316;
   --sidebar-accent-foreground: #ffffff;
   --sidebar-border: #e5e7eb;
-  --sidebar-ring: #1e3a8a;
+  --sidebar-ring: #1e40af;
 }
 
 .dark {
-  --primary: #3b82f6;
+  --primary: #2563eb;
   --primary-foreground: #ffffff;
-  --sidebar-primary: #3b82f6;
+  --sidebar-primary: #2563eb;
   --sidebar-primary-foreground: #ffffff;
   --background: #0f172a;
   --foreground: #f1f5f9;
@@ -94,7 +94,7 @@
   --secondary-foreground: #cbd5e1;
   --muted: #334155;
   --muted-foreground: #94a3b8;
-  --accent: #3b82f6;
+  --accent: #f97316;
   --accent-foreground: #ffffff;
   --destructive: #ef4444;
   --destructive-foreground: #ffffff;
@@ -177,5 +177,75 @@
       padding-right: 2rem;
       max-width: 1280px; /* Standard content width */
     }
+  }
+}
+
+
+/* Smooth transitions for interactive elements */
+@layer base {
+  button:not(:disabled),
+  [role="button"]:not([aria-disabled="true"]),
+  a[href],
+  input,
+  textarea,
+  select {
+    @apply transition-all duration-200 ease-in-out;
+  }
+
+  button:not(:disabled):hover,
+  [role="button"]:not([aria-disabled="true"]):hover {
+    @apply shadow-md;
+  }
+
+  input:focus,
+  textarea:focus,
+  select:focus {
+    @apply shadow-md;
+  }
+}
+
+@layer components {
+  /* Card shadows and transitions */
+  .card {
+    @apply shadow-sm transition-all duration-300 ease-in-out;
+  }
+
+  .card:hover {
+    @apply shadow-md;
+  }
+
+  /* Badge transitions */
+  [class*="badge"] {
+    @apply transition-all duration-200 ease-in-out;
+  }
+}
+
+@layer utilities {
+  /* Smooth transitions for all interactive elements */
+  .transition-smooth {
+    @apply transition-all duration-300 ease-in-out;
+  }
+
+  /* Shadow utilities */
+  .shadow-subtle {
+    @apply shadow-sm;
+  }
+
+  .shadow-elevated {
+    @apply shadow-lg;
+  }
+
+  /* Hover effects */
+  .hover-lift:hover {
+    @apply -translate-y-1 shadow-lg transition-all duration-200;
+  }
+
+  .hover-shadow:hover {
+    @apply shadow-lg transition-all duration-200;
+  }
+
+  /* Smooth scale effect */
+  .hover-scale:hover {
+    @apply scale-105 transition-all duration-200;
   }
 }
