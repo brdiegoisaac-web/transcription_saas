@@ -366,7 +366,24 @@ export async function getCompetitorCreatives(competitorId: number) {
   }
 
   try {
-    return await db.select().from(competitorCreatives).where(eq(competitorCreatives.competitorId, competitorId));
+    return await db
+      .select({
+        id: competitorCreatives.id,
+        transcriptionId: competitorCreatives.transcriptionId,
+        competitorId: competitorCreatives.competitorId,
+        notes: competitorCreatives.notes,
+        createdAt: competitorCreatives.createdAt,
+        fileName: transcriptions.fileName,
+        originalText: transcriptions.originalText,
+        segments: transcriptions.segments,
+        inputLanguage: transcriptions.inputLanguage,
+        outputLanguage: transcriptions.outputLanguage,
+        duration: transcriptions.duration,
+        transcriptionCreatedAt: transcriptions.createdAt,
+      })
+      .from(competitorCreatives)
+      .innerJoin(transcriptions, eq(competitorCreatives.transcriptionId, transcriptions.id))
+      .where(eq(competitorCreatives.competitorId, competitorId));
   } catch (error) {
     console.error("[Database] Failed to get competitor creatives:", error);
     return [];
