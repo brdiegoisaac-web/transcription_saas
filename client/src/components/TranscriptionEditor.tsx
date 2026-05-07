@@ -41,14 +41,26 @@ interface TranscriptionEditorProps {
 
 function SaveButton({ transcription, segments }: any) {
   const saveMutation = trpc.history.save.useMutation();
+  const linkCreativeMutation = trpc.competitors.linkCreative.useMutation();
   const [isSaving, setIsSaving] = useState(false);
+  const [showSaveModal, setShowSaveModal] = useState(false);
+  const [selectedCompetitorId, setSelectedCompetitorId] = useState<number | null>(null);
+  const [notes, setNotes] = useState("");
+  
+  // Carregar dados para o modal
+  const { data: categories } = trpc.competitors.listCategories.useQuery();
+  const [selectedCategoryId, setSelectedCategoryId] = useState<number | null>(null);
+  const { data: competitors } = trpc.competitors.listCompetitors.useQuery(
+    { categoryId: selectedCategoryId! },
+    { enabled: !!selectedCategoryId }
+  );
 
-  const handleSave = async () => {
+  const handleSaveToHistory = async () => {
     setIsSaving(true);
     try {
       const fullText = segments.map((seg: any) => `${seg.speaker}: ${seg.text}`).join("\n\n");
       
-      await saveMutation.mutateAsync({
+      const result = await saveMutation.mutateAsync({
         fileName: transcription.fileName,
         originalText: fullText,
         segments: segments,
@@ -57,7 +69,22 @@ function SaveButton({ transcription, segments }: any) {
         outputLanguage: "pt",
       });
       
-      toast.success("Transcrição salva com sucesso!");
+      // Se selecionou um concorrente, associar como criativo
+      if (selectedCompetitorId && result?.transcription?.id) {
+        await linkCreativeMutation.mutateAsync({
+          competitorId: selectedCompetitorId,
+          transcriptionId: result.transcription.id,
+          notes: notes,
+        });
+        toast.success("Criativo salvo e associado ao concorrente!");
+      } else {
+        toast.success("Transcrição salva com sucesso!");
+      }
+      
+      setShowSaveModal(false);
+      setSelectedCategoryId(null);
+      setSelectedCompetitorId(null);
+      setNotes("");
     } catch (error) {
       toast.error("Erro ao salvar transcrição");
       console.error(error);
@@ -66,14 +93,94 @@ function SaveButton({ transcription, segments }: any) {
     }
   };
 
+  if (showSaveModal) {
+    return (
+      <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
+        <div className="bg-white rounded-lg shadow-lg max-w-md w-full p-6 space-y-4">
+          <h2 className="text-lg font-semibold text-blue-900">Salvar Criativo</h2>
+          
+          <div className="space-y-3">
+            <div>
+              <label className="text-sm font-medium text-gray-700 block mb-2">Categoria (Opcional)</label>
+              <select
+                value={selectedCategoryId || ""}
+                onChange={(e) => {
+                  setSelectedCategoryId(e.target.value ? parseInt(e.target.value) : null);
+                  setSelectedCompetitorId(null);
+                }}
+                className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+              >
+                <option value="">Selecionar categoria...</option>
+                {categories?.map((cat: any) => (
+                  <option key={cat.id} value={cat.id}>
+                    {cat.name}
+                  </option>
+                ))}
+              </select>
+            </div>
+            
+            <div>
+              <label className="text-sm font-medium text-gray-700 block mb-2">Concorrente (Opcional)</label>
+              <select
+                value={selectedCompetitorId || ""}
+                onChange={(e) => setSelectedCompetitorId(e.target.value ? parseInt(e.target.value) : null)}
+                disabled={!selectedCategoryId}
+                className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 disabled:opacity-50 disabled:cursor-not-allowed"
+              >
+                <option value="">Selecionar concorrente...</option>
+                {competitors?.map((comp: any) => (
+                  <option key={comp.id} value={comp.id}>
+                    {comp.name}
+                  </option>
+                ))}
+              </select>
+            </div>
+            
+            <div>
+              <label className="text-sm font-medium text-gray-700 block mb-2">Notas (Opcional)</label>
+              <textarea
+                value={notes}
+                onChange={(e) => setNotes(e.target.value)}
+                placeholder="Ex: Anúncio principal, campanha de verão..."
+                className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 resize-none"
+                rows={3}
+              />
+            </div>
+          </div>
+          
+          <div className="flex gap-2 justify-end">
+            <button
+              onClick={() => {
+                setShowSaveModal(false);
+                setSelectedCategoryId(null);
+                setSelectedCompetitorId(null);
+                setNotes("");
+              }}
+              className="px-4 py-2 text-gray-700 border border-gray-300 rounded-lg hover:bg-gray-50 transition-colors"
+            >
+              Cancelar
+            </button>
+            <button
+              onClick={handleSaveToHistory}
+              disabled={isSaving}
+              className="px-4 py-2 bg-blue-900 text-white rounded-lg hover:bg-blue-800 transition-colors disabled:opacity-50 inline-flex items-center gap-2"
+            >
+              <Save className="w-4 h-4" />
+              {isSaving ? "Salvando..." : "Salvar"}
+            </button>
+          </div>
+        </div>
+      </div>
+    );
+  }
+
   return (
     <button
-      onClick={handleSave}
-      disabled={isSaving}
+      onClick={() => setShowSaveModal(true)}
       className="px-6 py-2 bg-blue-900 text-white rounded-lg font-medium text-sm hover:bg-blue-800 transition-colors disabled:opacity-50 inline-flex items-center gap-2"
     >
       <Save className="w-4 h-4" />
-      {isSaving ? "Salvando..." : "Salvar"}
+      Salvar
     </button>
   );
 }
