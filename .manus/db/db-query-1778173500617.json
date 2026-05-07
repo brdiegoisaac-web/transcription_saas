@@ -1,0 +1,9 @@
+{
+  "query": "ALTER TABLE competitorCreatives ADD COLUMN IF NOT EXISTS notes text AFTER competitorId;",
+  "command": "mysql --batch --raw --column-names --default-character-set=utf8mb4 --host gateway04.us-east-1.prod.aws.tidbcloud.com --port 4000 --user DGb3Y4CXcgypnor.root --database KyHdEFULLQDVKryxpkD59Q --execute ALTER TABLE competitorCreatives ADD COLUMN IF NOT EXISTS notes text AFTER competitorId;",
+  "rows": [],
+  "messages": [],
+  "stdout": "",
+  "stderr": "",
+  "execution_time_ms": 910
+}
