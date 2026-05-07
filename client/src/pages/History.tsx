@@ -197,14 +197,14 @@ export default function History() {
     <div className="min-h-screen bg-background">
       <div className="max-w-4xl mx-auto px-4 py-8">
         {/* Header */}
-        <div className="flex items-center justify-between mb-8">
-          <div>
-            <h1 className="text-3xl font-bold text-foreground">Histórico</h1>
-            <p className="text-muted-foreground mt-2">
+        <div className="flex items-center justify-between mb-12">
+          <div className="space-y-2">
+            <h1 className="text-4xl font-bold bg-gradient-to-r from-foreground to-primary bg-clip-text text-transparent">Histórico</h1>
+            <p className="text-muted-foreground">
               Visualize e reutilize suas transcrições anteriores
             </p>
           </div>
-          <Button variant="outline" onClick={() => setLocation("/")}>
+          <Button className="bg-gradient-to-r from-primary to-accent hover:shadow-lg transition-all duration-200" onClick={() => setLocation("/")}>
             <ArrowLeft className="w-4 h-4 mr-2" />
             Nova Transcrição
           </Button>
@@ -310,18 +310,17 @@ export default function History() {
             {filtered.map((transcription) => (
               <Card
                 key={transcription.id}
-                className="bg-card/50 backdrop-blur-sm border border-border/50 p-4 hover:border-primary/50 transition cursor-pointer"
+                className="bg-gradient-to-r from-card/50 to-card/30 border-border/50 p-5 hover:shadow-lg hover:border-accent/50 transition-all duration-300 cursor-pointer group"
                 onClick={() => setSelectedId(transcription.id)}
               >
                 <div className="flex items-center justify-between">
                   <div className="flex-1 min-w-0">
-                    <h3 className="font-semibold text-foreground truncate">
+                    <h3 className="font-bold text-foreground truncate group-hover:text-primary transition-colors">
                       {transcription.fileName}
                     </h3>
-                    <p className="text-sm text-muted-foreground mt-1 line-clamp-1">
-                      {transcription.segments.length} segmentos •{" "}
-                      {Math.floor(transcription.duration / 60)}m{" "}
-                      {transcription.duration % 60}s •{" "}
+                    <p className="text-sm text-muted-foreground mt-2 line-clamp-1">
+                      <span className="font-semibold text-accent">{transcription.segments.length}</span> segmentos •{" "}
+                      <span className="font-semibold text-accent">{Math.floor(transcription.duration / 60)}m {transcription.duration % 60}s</span> •{" "}
                       {formatDistanceToNow(new Date(transcription.createdAt), {
                         addSuffix: true,
                         locale: ptBR,
@@ -329,7 +328,7 @@ export default function History() {
                     </p>
                   </div>
                   <div className="flex items-center gap-2 ml-4 flex-shrink-0">
-                    <span className="text-xs px-2 py-1 rounded-full bg-primary/10 text-primary">
+                    <span className="text-xs px-3 py-1.5 rounded-full bg-accent/20 text-accent border border-accent/30 font-semibold">
                       {transcription.inputLanguage === "pt"
                         ? "PT"
                         : transcription.inputLanguage === "en"

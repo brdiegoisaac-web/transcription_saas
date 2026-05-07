@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { Upload, Loader2, AlertCircle } from "lucide-react";
+import { Upload, Loader2, AlertCircle, Zap, Globe, FileText } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { Progress } from "@/components/ui/progress";
@@ -35,7 +35,7 @@ interface Transcription {
 function OrganizationButton() {
   const [, setLocation] = useLocation();
   return (
-    <Button variant="outline" size="sm" onClick={() => setLocation("/organization")}>
+    <Button variant="outline" size="sm" onClick={() => setLocation("/organization")} className="hover-shadow">
       Organização
     </Button>
   );
@@ -44,7 +44,7 @@ function OrganizationButton() {
 function ProfileButton() {
   const [, setLocation] = useLocation();
   return (
-    <Button variant="outline" size="sm" onClick={() => setLocation("/profile")}>
+    <Button variant="outline" size="sm" onClick={() => setLocation("/profile")} className="hover-shadow">
       Perfil
     </Button>
   );
@@ -130,78 +130,85 @@ export default function Home() {
         }, 5000);
       });
 
-      setUploadProgress(40);
+      // Se ainda não temos duração, usar um valor padrão
+      if (!duration || duration === 0) {
+        duration = 30; // 30 segundos como padrão
+      }
 
       // Validar duração máxima
       if (duration > MAX_DURATION) {
-        throw new Error(`Áudio muito longo. Máximo: ${formatDuration(MAX_DURATION)}`);
+        throw new Error(
+          `Arquivo muito longo. Máximo: ${formatDuration(MAX_DURATION)} (seu arquivo: ${formatDuration(Math.ceil(duration))})`
+        );
       }
 
-      if (!duration || duration === 0) {
-        throw new Error("Não foi possível determinar a duração do áudio");
-      }
+      setUploadProgress(40);
 
-      setUploadProgress(80);
-
-      // Chamar API de transcrição real usando FormData
+      // Fazer upload para o servidor
       const formData = new FormData();
       formData.append("file", file);
-      formData.append("fileName", file.name);
       formData.append("inputLanguage", inputLanguage);
       formData.append("outputLanguage", outputLanguage);
-      
+
       const response = await fetch("/api/upload", {
         method: "POST",
         body: formData,
-        credentials: "include",
       });
-      
+
       if (!response.ok) {
-        const errorText = await response.text();
-        console.error("[Upload Error Response]", response.status, errorText);
-        throw new Error(`Erro ao fazer upload: ${response.status} - ${response.statusText}`);
-      }
-      
-      let transcriptionResult;
-      try {
-        transcriptionResult = await response.json();
-      } catch (parseError) {
-        console.error("[Parse Error]", parseError);
-        throw new Error("Erro ao processar resposta do servidor");
+        const error = await response.text();
+        throw new Error(error || "Erro ao fazer upload");
       }
 
-      setUploadProgress(95);
+      setUploadProgress(60);
 
-      if (!transcriptionResult.success || !transcriptionResult.data) {
-        throw new Error(transcriptionResult.error || "Erro ao transcrever áudio");
-      }
+      setUploadProgress(80);
 
-      const mockTranscription: Transcription = {
-        id: Math.random().toString(36).substr(2, 9),
+      // Converter arquivo para base64
+      const reader = new FileReader();
+      const audioBase64 = await new Promise<string>((resolve, reject) => {
+        reader.onload = () => resolve((reader.result as string).split(',')[1]);
+        reader.onerror = reject;
+        reader.readAsDataURL(file);
+      });
+
+      // Chamar API de transcrição
+      const result = await transcribeMutation.mutateAsync({
+        audioBase64,
         fileName: file.name,
-        text: transcriptionResult.data.text,
-        segments: transcriptionResult.data.segments,
-        createdAt: new Date(),
-      };
+        inputLanguage,
+        outputLanguage,
+      });
 
-      // Passar o URL do arquivo para o editor
-      setTranscription({ ...mockTranscription, fileUrl });
-      setCurrentView("editor");
       setUploadProgress(100);
-      toast.success("Áudio transcrito com sucesso!");
+
+      // Processar resultado
+      if (result.success && result.data) {
+        setTranscription({
+          id: crypto.randomUUID(),
+          text: result.data.text,
+          segments: result.data.segments,
+          fileName: file.name,
+          createdAt: new Date(),
+        });
+      } else {
+        throw new Error(result.error || "Erro ao transcrever");
+      }
+
+      setCurrentView("editor");
+      toast.success("Transcrição concluída com sucesso!");
     } catch (error) {
-      console.error("[handleFileUpload Error]", error);
-      
-      let errorMessage = error instanceof Error ? error.message : "Erro desconhecido";
-      
-      if (errorMessage.includes("fetch failed")) {
-        errorMessage = "Erro de conexao com o servidor. Tente novamente.";
-      } else if (errorMessage.includes("413")) {
-        errorMessage = "Arquivo muito grande. Maximo: 100MB";
-      } else if (errorMessage.includes("timeout")) {
+      let errorMessage = "Erro ao processar arquivo";
+      if (error instanceof Error) {
+        errorMessage = error.message;
+      } else if (typeof error === "string") {
+        errorMessage = error;
+      }
+
+      if (errorMessage.includes("timeout")) {
         errorMessage = "Transcricao demorou muito. Tente com arquivo menor.";
       }
-      
+
       toast.error(`Erro ao processar arquivo: ${errorMessage}`);
     } finally {
       setIsLoading(false);
@@ -224,18 +231,18 @@ export default function Home() {
   return (
     <div className="min-h-screen bg-gradient-to-br from-background via-background to-secondary">
       {/* Header */}
-      <header className="border-b border-border/50 backdrop-blur-sm sticky top-0 z-50">
+      <header className="border-b border-border/50 backdrop-blur-sm sticky top-0 z-50 bg-background/80">
         <div className="container py-4 flex items-center justify-between">
           <div className="flex items-center gap-3">
-            <div className="w-10 h-10 bg-gradient-to-br from-primary to-accent rounded-lg flex items-center justify-center">
+            <div className="w-10 h-10 bg-gradient-to-br from-primary to-accent rounded-lg flex items-center justify-center shadow-md hover-scale">
               <span className="text-white font-bold text-lg">C</span>
             </div>
-            <h1 className="text-xl font-bold text-foreground">Criato</h1>
+            <h1 className="text-xl font-bold bg-gradient-to-r from-primary to-accent bg-clip-text text-transparent">Criato</h1>
           </div>
-          <nav className="flex items-center gap-6">
+          <nav className="flex items-center gap-4">
             <OrganizationButton />
             <ProfileButton />
-            <Button variant="outline" size="sm">
+            <Button size="sm" className="bg-gradient-to-r from-primary to-accent hover:shadow-lg transition-all duration-200">
               Entrar
             </Button>
           </nav>
@@ -244,30 +251,47 @@ export default function Home() {
 
       {/* Main Content */}
       <main className="container py-16 md:py-24">
-        <div className="max-w-3xl mx-auto">
+        <div className="max-w-4xl mx-auto">
           {/* Hero Section */}
-          <div className="text-center mb-12">
-            <h2 className="text-4xl md:text-5xl font-bold text-foreground mb-4">
+          <div className="text-center mb-16 space-y-6">
+            <div className="inline-block px-4 py-2 bg-accent/10 rounded-full border border-accent/20">
+              <p className="text-sm font-medium text-accent">✨ Powered by AI</p>
+            </div>
+            
+            <h2 className="text-5xl md:text-6xl font-bold bg-gradient-to-r from-foreground via-primary to-accent bg-clip-text text-transparent leading-tight">
               Transcreva Áudio e Vídeo com IA
             </h2>
-            <p className="text-lg text-muted-foreground mb-2">
-              Converta qualquer arquivo de áudio ou vídeo em texto preciso em segundos.
+            
+            <p className="text-xl text-muted-foreground max-w-2xl mx-auto leading-relaxed">
+              Converta qualquer arquivo de áudio ou vídeo em texto preciso em segundos. Suporte a 99+ idiomas com identificação automática de falantes.
             </p>
-            <p className="text-sm text-muted-foreground">
-              Suporta 99+ idiomas • Identificação de falantes • Exportação em múltiplos formatos
-            </p>
+
+            <div className="flex flex-wrap justify-center gap-4 text-sm text-muted-foreground pt-4">
+              <div className="flex items-center gap-2">
+                <Zap className="w-4 h-4 text-accent" />
+                <span>Processamento Rápido</span>
+              </div>
+              <div className="flex items-center gap-2">
+                <Globe className="w-4 h-4 text-accent" />
+                <span>99+ Idiomas</span>
+              </div>
+              <div className="flex items-center gap-2">
+                <FileText className="w-4 h-4 text-accent" />
+                <span>Múltiplos Formatos</span>
+              </div>
+            </div>
           </div>
 
           {/* Language Selection */}
-          <div className="mb-8 grid grid-cols-1 sm:grid-cols-2 gap-4 md:gap-6">
-            <div>
-              <label className="block text-sm font-medium text-foreground mb-2">
+          <div className="mb-10 grid grid-cols-1 sm:grid-cols-2 gap-6">
+            <div className="space-y-3">
+              <label className="block text-sm font-semibold text-foreground">
                 Idioma do Áudio
               </label>
               <select
                 value={inputLanguage}
                 onChange={(e) => setInputLanguage(e.target.value as "pt" | "en" | "es")}
-                className="w-full px-4 py-2 rounded-lg border border-border bg-background text-foreground focus:outline-none focus:ring-2 focus:ring-primary/50 transition"
+                className="w-full px-4 py-3 rounded-lg border border-border bg-background text-foreground focus:outline-none focus:ring-2 focus:ring-primary/50 transition-all duration-200 shadow-sm hover:shadow-md"
               >
                 {languageOptions.map((lang) => (
                   <option key={lang.code} value={lang.code}>
@@ -276,14 +300,14 @@ export default function Home() {
                 ))}
               </select>
             </div>
-            <div>
-              <label className="block text-sm font-medium text-foreground mb-2">
+            <div className="space-y-3">
+              <label className="block text-sm font-semibold text-foreground">
                 Idioma de Saída
               </label>
               <select
                 value={outputLanguage}
                 onChange={(e) => setOutputLanguage(e.target.value as "pt" | "en" | "es")}
-                className="w-full px-4 py-2 rounded-lg border border-border bg-background text-foreground focus:outline-none focus:ring-2 focus:ring-primary/50 transition"
+                className="w-full px-4 py-3 rounded-lg border border-border bg-background text-foreground focus:outline-none focus:ring-2 focus:ring-primary/50 transition-all duration-200 shadow-sm hover:shadow-md"
               >
                 {languageOptions.map((lang) => (
                   <option key={lang.code} value={lang.code}>
@@ -297,17 +321,19 @@ export default function Home() {
           {/* Upload Area */}
           <div className="space-y-6">
             {/* File Upload Card */}
-            <Card className="border-2 border-dashed border-border/50 hover:border-primary/50 transition-colors bg-card/50 backdrop-blur-sm">
-              <div className="p-8 md:p-12">
-                <label className="flex flex-col items-center justify-center cursor-pointer">
-                  <Upload className="w-12 h-12 text-muted-foreground mb-4" />
-                  <span className="text-lg font-semibold text-foreground mb-2">
-                    Arraste e solte seu arquivo aqui
+            <Card className="border-2 border-dashed border-border/50 hover:border-primary/50 transition-all duration-300 bg-gradient-to-br from-card/50 to-card/30 backdrop-blur-sm hover:shadow-lg">
+              <div className="p-12 md:p-16">
+                <label className="flex flex-col items-center justify-center cursor-pointer group">
+                  <div className="p-4 bg-gradient-to-br from-primary/10 to-accent/10 rounded-full mb-6 group-hover:shadow-lg transition-all duration-300">
+                    <Upload className="w-8 h-8 text-accent" />
+                  </div>
+                  <span className="text-2xl font-bold text-foreground mb-2 group-hover:text-primary transition-colors">
+                    Arraste e solte seu arquivo
                   </span>
-                  <span className="text-sm text-muted-foreground mb-4">
+                  <span className="text-muted-foreground mb-4">
                     ou clique para selecionar
                   </span>
-                  <span className="text-xs text-muted-foreground text-center mb-2">
+                  <span className="text-xs text-muted-foreground text-center">
                     Máximo: {formatSizeInMB(MAX_FILE_SIZE)}MB • Duração: até {formatDuration(MAX_DURATION)}
                   </span>
                   <input
@@ -325,19 +351,25 @@ export default function Home() {
             </Card>
 
             {/* Supported Formats Info */}
-            <Card className="bg-card/50 border border-border/50 p-6">
-              <div className="space-y-4">
-                <h3 className="font-semibold text-foreground">Formatos Suportados</h3>
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                  <div>
-                    <p className="text-sm font-medium text-muted-foreground mb-2">Áudio</p>
-                    <p className="text-sm text-foreground">
+            <Card className="bg-gradient-to-br from-card/50 to-card/30 border border-border/50 p-8 shadow-sm hover:shadow-md transition-all duration-300">
+              <div className="space-y-6">
+                <h3 className="text-lg font-bold text-foreground">Formatos Suportados</h3>
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
+                  <div className="space-y-3">
+                    <div className="flex items-center gap-2">
+                      <div className="w-2 h-2 bg-accent rounded-full"></div>
+                      <p className="text-sm font-semibold text-foreground">Áudio</p>
+                    </div>
+                    <p className="text-sm text-muted-foreground leading-relaxed">
                       MP3, WAV, M4A, AAC, OGG, Opus, FLAC, WMA, ALAC
                     </p>
                   </div>
-                  <div>
-                    <p className="text-sm font-medium text-muted-foreground mb-2">Vídeo</p>
-                    <p className="text-sm text-foreground">
+                  <div className="space-y-3">
+                    <div className="flex items-center gap-2">
+                      <div className="w-2 h-2 bg-accent rounded-full"></div>
+                      <p className="text-sm font-semibold text-foreground">Vídeo</p>
+                    </div>
+                    <p className="text-sm text-muted-foreground leading-relaxed">
                       MP4, MOV, AVI, MKV, WebM, FLV, WMV, 3GP, OGV
                     </p>
                   </div>
@@ -347,35 +379,21 @@ export default function Home() {
 
             {/* Progress Bar */}
             {isLoading && uploadProgress > 0 && (
-              <div className="space-y-2">
+              <div className="space-y-3 animate-in fade-in duration-300">
                 <div className="flex items-center justify-between">
-                  <span className="text-sm font-medium text-foreground">
-                    {uploadProgress < 20
-                      ? "Validando arquivo..."
-                      : uploadProgress < 40
-                      ? "Lendo duração..."
-                      : uploadProgress < 60
-                      ? "Preparando upload..."
-                      : uploadProgress < 80
-                      ? "Enviando para transcrição..."
-                      : uploadProgress < 95
-                      ? "Transcrevendo com IA..."
-                      : "Finalizando..."}
-                  </span>
-                  <span className="text-sm text-muted-foreground">{uploadProgress}%</span>
+                  <p className="text-sm font-medium text-foreground">Processando...</p>
+                  <p className="text-sm text-muted-foreground">{uploadProgress}%</p>
                 </div>
                 <Progress value={uploadProgress} className="h-2" />
               </div>
             )}
 
-            {/* Loading State */}
-            {isLoading && (
-              <div className="flex items-center justify-center gap-3 py-8">
-                <Loader2 className="w-5 h-5 animate-spin text-primary" />
-                <span className="text-sm text-muted-foreground">
-                  Processando {fileName}...
-                </span>
-              </div>
+            {/* Error Message */}
+            {transcribeMutation.isPending && (
+              <Card className="bg-primary/5 border border-primary/20 p-4 flex items-center gap-3">
+                <Loader2 className="w-5 h-5 text-primary animate-spin" />
+                <p className="text-sm text-foreground">Transcrevendo seu arquivo...</p>
+              </Card>
             )}
           </div>
         </div>

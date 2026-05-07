@@ -78,21 +78,21 @@ function CategoryCard({ category, competitors, onAddCompetitor, onDeleteCompetit
   };
 
   return (
-    <Card className="p-6 mb-4">
+    <Card className="p-6 mb-4 bg-gradient-to-r from-card/50 to-card/30 border-border/50 hover:shadow-lg transition-all duration-300 cursor-pointer group">
       <div
-        className="flex items-center justify-between cursor-pointer"
+        className="flex items-center justify-between"
         onClick={() => setExpanded(!expanded)}
       >
         <div className="flex-1">
-          <h3 className="text-lg font-semibold text-foreground">{category.name}</h3>
+          <h3 className="text-lg font-bold text-foreground group-hover:text-primary transition-colors">{category.name}</h3>
           {category.description && (
-            <p className="text-sm text-muted-foreground mt-1">{category.description}</p>
+            <p className="text-sm text-muted-foreground mt-2">{category.description}</p>
           )}
         </div>
-        <div className="flex items-center gap-2">
-          <Badge variant="secondary">{competitors.length} concorrentes</Badge>
-          <button className="p-2 hover:bg-secondary rounded transition">
-            {expanded ? <ChevronUp className="w-5 h-5" /> : <ChevronDown className="w-5 h-5" />}
+        <div className="flex items-center gap-3">
+          <Badge className="bg-accent/20 text-accent border-accent/30 font-semibold">{competitors.length} concorrentes</Badge>
+          <button className="p-2 hover:bg-accent/10 rounded-lg transition-all duration-200 group-hover:scale-110">
+            {expanded ? <ChevronUp className="w-5 h-5 text-accent" /> : <ChevronDown className="w-5 h-5 text-accent" />}
           </button>
         </div>
       </div>
@@ -205,9 +205,8 @@ function CategoryCard({ category, competitors, onAddCompetitor, onDeleteCompetit
           ) : (
             <Button
               size="sm"
-              variant="outline"
+              className="w-full bg-gradient-to-r from-primary to-accent hover:shadow-lg transition-all duration-200"
               onClick={() => setShowForm(true)}
-              className="w-full"
             >
               <Plus className="w-4 h-4 mr-2" />
               Adicionar Concorrente
@@ -293,10 +292,10 @@ export default function Competitors() {
       {/* Main Content */}
       <main className="container py-12">
         <div className="max-w-4xl mx-auto">
-          <div className="flex items-center justify-between mb-8">
-            <div>
-              <h1 className="text-3xl font-bold">Organização de Criativos</h1>
-              <p className="text-gray-600">Organize seus criativos por concorrente e categoria para melhor análise</p>
+          <div className="flex items-center justify-between mb-12">
+            <div className="space-y-2">
+              <h1 className="text-4xl font-bold bg-gradient-to-r from-foreground to-primary bg-clip-text text-transparent">Organização de Criativos</h1>
+              <p className="text-muted-foreground">Organize seus criativos por concorrente e categoria para melhor análise</p>
             </div>
             <Button
               onClick={() => setShowCategoryForm(true)}
